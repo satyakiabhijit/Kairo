@@ -7,7 +7,6 @@ import deepseekExtractor from './deepseek.js';
 
 const EXTRACTORS = {
   'claude.ai': claudeExtractor,
-  'chat.openai.com': chatgptExtractor,
   'chatgpt.com': chatgptExtractor,
   'gemini.google.com': geminiExtractor,
   'chat.deepseek.com': deepseekExtractor,

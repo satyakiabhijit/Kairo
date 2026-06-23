@@ -278,7 +278,7 @@ function trackInputArea() {
       buttonWrapper.style.display = 'flex';
 
       // Determine position based on platform
-      if (location.hostname.includes('chatgpt.com') || location.hostname.includes('chat.openai.com')) {
+      if (location.hostname.includes('chatgpt.com')) {
         // Position outside the right side of the ChatGPT input bar
         // rect is the text area itself, which ends before the mic/send buttons. 
         // Adding ~110px pushes it past those buttons to sit cleanly on the right.
