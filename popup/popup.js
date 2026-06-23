@@ -4,6 +4,7 @@ import { h, render } from 'preact';
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { html } from 'htm/preact';
 import { timeAgo, truncate, platformName } from '../shared/utils.js';
+import { buildInjectionText } from '../shared/inject.js';
 
 // ─── Main Popup Component ───────────────────────────────────────
 function Popup() {
@@ -69,9 +70,7 @@ function Popup() {
   // ─── Inject into active tab ────────────────────────────────
   const handleInject = useCallback(async (capsule) => {
     try {
-      const contextText = capsule.content?.summary
-        ? `[Context from Kairo]\n\n${capsule.content.summary}\n\nGoals: ${(capsule.content.goals || []).join(', ')}\n\nStack: ${(capsule.content.stack || []).join(', ')}\n\nKey Decisions: ${(capsule.content.keyDecisions || []).join(', ')}`
-        : capsule.content?.rawSnippet || '';
+      const contextText = buildInjectionText(capsule);
 
       chrome.runtime.sendMessage({
         type: 'INJECT_CONTEXT',

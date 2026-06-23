@@ -1,5 +1,7 @@
 // content/injector.js — Injects the Kairo button next to chat inputs and handles the capture/inject menu
 
+import { buildInjectionText } from '../shared/inject.js';
+
 let buttonWrapper = null;
 let currentTextarea = null;
 
@@ -181,7 +183,7 @@ export function injectButton(onCapture) {
         item.addEventListener('mouseleave', () => item.style.background = '#2a2a2a');
 
         item.addEventListener('dragstart', (e) => {
-          e.dataTransfer.setData('text/plain', capsule.content.rawSnippet || '');
+          e.dataTransfer.setData('text/plain', buildInjectionText(capsule));
           item.style.opacity = '0.5';
           modal.style.opacity = '0.3';
         });
@@ -192,7 +194,7 @@ export function injectButton(onCapture) {
         });
 
         item.addEventListener('click', () => {
-          injectTextAndSend(capsule.content.rawSnippet || 'No content found.');
+          injectTextAndSend(buildInjectionText(capsule) || 'No content found.');
           modal.style.display = 'none';
         });
 
