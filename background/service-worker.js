@@ -164,7 +164,6 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['page'],
     documentUrlPatterns: [
       'https://claude.ai/*',
-      'https://chat.openai.com/*',
       'https://chatgpt.com/*',
       'https://gemini.google.com/*',
       'https://chat.deepseek.com/*',

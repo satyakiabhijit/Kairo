@@ -4,6 +4,7 @@ import { h, render } from 'preact';
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { html } from 'htm/preact';
 import { timeAgo, truncate, platformName } from '../shared/utils.js';
+import { buildInjectionText } from '../shared/inject.js';
 
 // ─── Main Popup Component ───────────────────────────────────────
 function Popup() {
@@ -69,9 +70,7 @@ function Popup() {
   // ─── Inject into active tab ────────────────────────────────
   const handleInject = useCallback(async (capsule) => {
     try {
-      const contextText = capsule.content?.summary
-        ? `[Context from Kairo]\n\n${capsule.content.summary}\n\nGoals: ${(capsule.content.goals || []).join(', ')}\n\nStack: ${(capsule.content.stack || []).join(', ')}\n\nKey Decisions: ${(capsule.content.keyDecisions || []).join(', ')}`
-        : capsule.content?.rawSnippet || '';
+      const contextText = buildInjectionText(capsule);
 
       chrome.runtime.sendMessage({
         type: 'INJECT_CONTEXT',
@@ -114,14 +113,19 @@ function Popup() {
         Kairo
       </h1>
       <div class="header-actions">
-        <button class="icon-btn" onClick=${openOptions} title="Settings" id="kairo-settings-btn">Settings</button>
+        <button class="icon-btn" onClick=${openOptions} title="Settings" id="kairo-settings-btn"><i class="fa-solid fa-gear" style="color: rgb(138, 152, 177);"></i></button>
       </div>
     </div>
 
     <!-- Search -->
     <div class="search-container">
       <div class="search-wrapper">
-        <span class="search-icon">Search</span>
+        <span class="search-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
         <input
           class="search-input"
           type="text"
@@ -173,14 +177,23 @@ function Popup() {
     <div class="capsule-list" id="kairo-capsule-list">
       ${loading && html`
         <div class="empty-state">
-          <div class="empty-icon">Loading</div>
+          <div class="empty-icon">
+            <svg class="kairo-spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:block; margin:0 auto;">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+          </div>
           <div class="empty-title">Loading</div>
         </div>
       `}
 
       ${!loading && sorted.length === 0 && html`
         <div class="empty-state">
-          <div class="empty-icon">None</div>
+          <div class="empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto;">
+              <path d="M22 12h-6l-2 3h-4l-2-3H2"></path>
+              <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+            </svg>
+          </div>
           <div class="empty-title">No capsules yet</div>
           <div class="empty-desc">
             Visit any AI chat and click the capture button to save context.
@@ -275,7 +288,7 @@ function CapsuleCard({ capsule, onCopy, onInject, onDelete }) {
           Inject
         </button>
         <button class="card-btn delete" onClick=${onDelete} title="Delete capsule">
-          Delete
+          <i class="fa-solid fa-trash" style="color: rgb(147, 162, 187);"></i>
         </button>
       </div>
     </div>

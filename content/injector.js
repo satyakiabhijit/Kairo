@@ -1,5 +1,7 @@
 // content/injector.js — Injects the Kairo button next to chat inputs and handles the capture/inject menu
 
+import { buildInjectionText } from '../shared/inject.js';
+
 let buttonWrapper = null;
 let currentTextarea = null;
 
@@ -67,6 +69,7 @@ export function injectButton(onCapture) {
 
   // Capture Option
   const captureOpt = document.createElement('button');
+  captureOpt.id = 'kairo-capture-btn';
   captureOpt.textContent = 'Capture';
   styleMenuOption(captureOpt);
 
@@ -122,13 +125,17 @@ export function injectButton(onCapture) {
     }
   });
 
-  // Action: Capture
-  captureOpt.addEventListener('click', async () => {
+  // Shared capture routine — used by the menu AND the global trigger.
+  let capturing = false;
+  async function runCapture() {
+    if (capturing) return;
+    capturing = true;
     captureOpt.textContent = 'Capturing...';
     try {
       const success = await onCapture();
       if (success === false) {
         captureOpt.textContent = 'Capture';
+        capturing = false;
         return;
       }
       captureOpt.textContent = 'Saved';
@@ -139,8 +146,12 @@ export function injectButton(onCapture) {
     setTimeout(() => {
       captureOpt.textContent = 'Capture';
       menu.style.display = 'none';
+      capturing = false;
     }, 2000);
-  });
+  }
+
+  // Action: Capture
+  captureOpt.addEventListener('click', runCapture);
 
   // Action: Inject
   injectOpt.addEventListener('click', async () => {
@@ -181,7 +192,7 @@ export function injectButton(onCapture) {
         item.addEventListener('mouseleave', () => item.style.background = '#2a2a2a');
 
         item.addEventListener('dragstart', (e) => {
-          e.dataTransfer.setData('text/plain', capsule.content.rawSnippet || '');
+          e.dataTransfer.setData('text/plain', buildInjectionText(capsule));
           item.style.opacity = '0.5';
           modal.style.opacity = '0.3';
         });
@@ -192,7 +203,7 @@ export function injectButton(onCapture) {
         });
 
         item.addEventListener('click', () => {
-          injectTextAndSend(capsule.content.rawSnippet || 'No content found.');
+          injectTextAndSend(buildInjectionText(capsule) || 'No content found.');
           modal.style.display = 'none';
         });
 
@@ -203,6 +214,10 @@ export function injectButton(onCapture) {
 
   // Start tracking the chat input area
   trackInputArea();
+
+  // Expose the capture trigger for keyboard shortcut + context menu.
+  // The service worker invokes this inside the content script isolated world.
+  window.__kairoTriggerCapture = runCapture;
 }
 
 function styleMenuOption(opt) {
@@ -242,8 +257,18 @@ function trackInputArea() {
     return null;
   };
 
+  let scheduled = false;
+  let lastKey = '';
+  let inputResizeObserver = null;
+
   const updatePosition = () => {
-    const input = findInput();
+    // Reuse the cached input while it is still attached; only re-run the
+    // selector sweep when it is missing or has been detached (e.g. SPA nav).
+    let input = currentTextarea;
+    if (!input || !document.contains(input)) {
+      input = findInput();
+    }
+
     if (input) {
       if (currentTextarea !== input) {
         currentTextarea = input;
@@ -270,15 +295,25 @@ function trackInputArea() {
             injectTextAndSend(text);
           }
         });
+
+        // Reposition when the input itself resizes (e.g. multi-line growth)
+        if (inputResizeObserver) inputResizeObserver.disconnect();
+        inputResizeObserver = new ResizeObserver(scheduleUpdate);
+        inputResizeObserver.observe(input);
       }
 
       const rect = input.getBoundingClientRect();
+
+      // Skip redundant style writes when the anchor has not moved.
+      const key = `${Math.round(rect.right)}:${Math.round(rect.bottom)}`;
+      if (key === lastKey && buttonWrapper.style.display === 'flex') return;
+      lastKey = key;
 
       // Position just to the right of the input, slightly above the bottom
       buttonWrapper.style.display = 'flex';
 
       // Determine position based on platform
-      if (location.hostname.includes('chatgpt.com') || location.hostname.includes('chat.openai.com')) {
+      if (location.hostname.includes('chatgpt.com')) {
         // Position outside the right side of the ChatGPT input bar
         // rect is the text area itself, which ends before the mic/send buttons. 
         // Adding ~110px pushes it past those buttons to sit cleanly on the right.
@@ -304,17 +339,37 @@ function trackInputArea() {
         buttonWrapper.style.top = `${rect.bottom - 40}px`;
       }
     } else {
-      // Fallback: bottom right
+      // Fallback: bottom right (write once until the state changes)
+      if (lastKey === 'fallback' && buttonWrapper.style.display === 'flex') return;
+      lastKey = 'fallback';
       buttonWrapper.style.display = 'flex';
       buttonWrapper.style.left = 'auto';
       buttonWrapper.style.right = '20px';
       buttonWrapper.style.top = 'auto';
       buttonWrapper.style.bottom = '80px';
     }
-    requestAnimationFrame(updatePosition);
   };
 
-  updatePosition();
+  // Coalesce every reposition trigger into a single animation frame.
+  function scheduleUpdate() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      updatePosition();
+    });
+  }
+
+  // Reposition only in response to real layout changes, not on every frame.
+  window.addEventListener('scroll', scheduleUpdate, { passive: true, capture: true });
+  window.addEventListener('resize', scheduleUpdate, { passive: true });
+
+  // Catch the input being added, removed, or moved (incl. SPA navigation).
+  const domObserver = new MutationObserver(scheduleUpdate);
+  domObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Initial placement.
+  scheduleUpdate();
 }
 
 function injectTextAndSend(text) {
