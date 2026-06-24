@@ -127,11 +127,6 @@ import { createCapsule } from '../shared/capsule.js';
       return result;
     });
 
-    // Expose trigger for keyboard shortcut + context menu
-    window.__kairoTriggerCapture = () => {
-      document.getElementById('kairo-capture-btn')?.click();
-    };
-
     console.log('[Kairo] Content script initialized');
   } catch (err) {
     console.error('[Kairo] Content script init error:', err);

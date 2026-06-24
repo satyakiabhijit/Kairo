@@ -1,5 +1,5 @@
 // content/extractors/chatgpt.js — ChatGPT DOM extractor
-// Supports both chat.openai.com and chatgpt.com
+// Serves chatgpt.com (the legacy OpenAI chat host permanently redirects here)
 // Selectors verified: May 2026
 
 export default {
