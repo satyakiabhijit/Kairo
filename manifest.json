@@ -14,7 +14,8 @@
     "https://claude.ai/*",
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
-    "https://chat.deepseek.com/*"
+    "https://chat.deepseek.com/*",
+    "https://api.anthropic.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
