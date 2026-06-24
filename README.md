@@ -106,4 +106,4 @@ scripts/           Build-time utilities
 
 ## License
 
-MIT
+MIT (Test)
