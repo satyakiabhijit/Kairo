@@ -203,7 +203,7 @@ export function injectButton(onCapture) {
         });
 
         item.addEventListener('click', () => {
-          injectTextAndSend(buildInjectionText(capsule) || 'No content found.');
+          injectText(buildInjectionText(capsule) || 'No content found.');
           modal.style.display = 'none';
         });
 
@@ -292,7 +292,7 @@ function trackInputArea() {
           input.style.outlineOffset = '';
           const text = e.dataTransfer.getData('text/plain');
           if (text) {
-            injectTextAndSend(text);
+            injectText(text);
           }
         });
 
@@ -372,56 +372,18 @@ function trackInputArea() {
   scheduleUpdate();
 }
 
-function injectTextAndSend(text) {
+function injectText(text) {
   if (currentTextarea) {
     // Editor-aware insertion that works across plain textareas and the rich
     // contenteditable editors used by Claude (ProseMirror) and Gemini, replacing
     // the deprecated document.execCommand('insertText') path that silently failed
     // on those platforms.
+    //
+    // Inject only: populate the input and leave the caret there so the user can
+    // review, edit, or add to the context and press Send themselves (issue #29).
     insertTextIntoEditor(currentTextarea, text);
-
-    // Yield to the event loop so the host framework can process the input state, then auto-send
-    setTimeout(() => {
-      triggerSend();
-    }, 150);
   } else {
     alert('Could not find an input box to inject into.');
-  }
-}
-
-function triggerSend() {
-  // Selector list to cover Claude, ChatGPT, Gemini, and DeepSeek send buttons
-  const sendSelectors = [
-    'button[data-testid="send-button"]',        // ChatGPT & Claude fallback
-    'button[data-testid="composer-button"]',    // ChatGPT composer button
-    'button[aria-label*="send" i]',              // General (matches Claude, Gemini, etc.)
-    'button[class*="send" i]',                  // DeepSeek and custom chat layers
-    'button[id*="send" i]',
-    'div[role="button"][aria-label*="send" i]',
-    '.send-button'
-  ];
-
-  for (const selector of sendSelectors) {
-    const btn = document.querySelector(selector);
-    if (btn && !btn.disabled) {
-      btn.click();
-      console.log('[Kairo] Auto-send triggered via action button.');
-      return;
-    }
-  }
-
-  // Fallback: dispatch keydown Enter to submit
-  if (currentTextarea) {
-    const enterDown = new KeyboardEvent('keydown', {
-      key: 'Enter',
-      code: 'Enter',
-      keyCode: 13,
-      which: 13,
-      bubbles: true,
-      cancelable: true
-    });
-    currentTextarea.dispatchEvent(enterDown);
-    console.log('[Kairo] Auto-send fallback: Dispatched Enter keystroke.');
   }
 }
 
