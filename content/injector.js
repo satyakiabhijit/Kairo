@@ -1,6 +1,6 @@
 // content/injector.js — Injects the Kairo button next to chat inputs and handles the capture/inject menu
 
-import { buildInjectionText } from '../shared/inject.js';
+import { buildInjectionText, insertTextIntoEditor } from '../shared/inject.js';
 
 let buttonWrapper = null;
 let currentTextarea = null;
@@ -374,14 +374,11 @@ function trackInputArea() {
 
 function injectTextAndSend(text) {
   if (currentTextarea) {
-    currentTextarea.focus();
-
-    // Inject text via standard command so it handles internal editor undo stack & state
-    document.execCommand('insertText', false, text);
-
-    // Trigger input event so React/Vue framework state matches DOM
-    const event = new Event('input', { bubbles: true });
-    currentTextarea.dispatchEvent(event);
+    // Editor-aware insertion that works across plain textareas and the rich
+    // contenteditable editors used by Claude (ProseMirror) and Gemini, replacing
+    // the deprecated document.execCommand('insertText') path that silently failed
+    // on those platforms.
+    insertTextIntoEditor(currentTextarea, text);
 
     // Yield to the event loop so the host framework can process the input state, then auto-send
     setTimeout(() => {

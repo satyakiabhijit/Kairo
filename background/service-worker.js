@@ -66,9 +66,15 @@ const MESSAGE_HANDLERS = {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab) return { success: false, error: 'No active tab' };
 
-      await chrome.scripting.executeScript({
+      const [injection] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
+        // Self-contained mirror of insertTextIntoEditor() in shared/inject.js.
+        // chrome.scripting.executeScript serializes this function and runs it in
+        // the page, so it cannot import modules — keep this algorithm in sync
+        // with the shared helper. Inserts only; never submits.
         func: (contextText) => {
+          if (!contextText) return false;
+
           const selectors = [
             'div[contenteditable="true"]',
             '#prompt-textarea',
@@ -76,19 +82,112 @@ const MESSAGE_HANDLERS = {
             'rich-textarea',
             'textarea',
           ];
+          let el = null;
           for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (el) {
-              el.focus();
-              document.execCommand('insertText', false, contextText);
-              return true;
-            }
+            el = document.querySelector(sel);
+            if (el) break;
           }
-          return false;
+          if (!el) return false;
+
+          el.focus();
+
+          const tag = el.tagName;
+
+          // Native <textarea> / <input>: prototype value setter + InputEvent.
+          if (tag === 'TEXTAREA' || tag === 'INPUT') {
+            const proto =
+              tag === 'TEXTAREA'
+                ? window.HTMLTextAreaElement.prototype
+                : window.HTMLInputElement.prototype;
+            const desc = Object.getOwnPropertyDescriptor(proto, 'value');
+            const next = el.value ? `${el.value}\n\n${contextText}` : contextText;
+            if (desc && desc.set) desc.set.call(el, next);
+            else el.value = next;
+            el.dispatchEvent(
+              new InputEvent('input', { bubbles: true, inputType: 'insertText', data: contextText })
+            );
+            return true;
+          }
+
+          // Rich contenteditable (Claude ProseMirror, Gemini, ChatGPT).
+          const editable = el.isContentEditable
+            ? el
+            : el.querySelector('[contenteditable="true"], .ProseMirror') || el;
+          if (editable.focus) editable.focus();
+
+          const moveCaretToEnd = (node) => {
+            const sel = window.getSelection && window.getSelection();
+            if (!sel) return;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          };
+          const insertAtCaret = (node, text) => {
+            const sel = window.getSelection && window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+              const range = sel.getRangeAt(0);
+              range.deleteContents();
+              const parts = String(text).split('\n');
+              const frag = document.createDocumentFragment();
+              parts.forEach((part, i) => {
+                if (i > 0) frag.appendChild(document.createElement('br'));
+                frag.appendChild(document.createTextNode(part));
+              });
+              range.insertNode(frag);
+              range.collapse(false);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            } else {
+              node.textContent = (node.textContent || '') + text;
+            }
+          };
+
+          moveCaretToEnd(editable);
+          const start = editable.textContent;
+          const changed = () => editable.textContent !== start;
+
+          const handledByEditor = !editable.dispatchEvent(
+            new InputEvent('beforeinput', {
+              bubbles: true,
+              cancelable: true,
+              inputType: 'insertText',
+              data: contextText,
+            })
+          );
+          if (handledByEditor || changed()) return true;
+
+          try {
+            const dt = new DataTransfer();
+            dt.setData('text/plain', contextText);
+            editable.dispatchEvent(
+              new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: dt })
+            );
+          } catch (_) {
+            /* ClipboardEvent not constructable in this engine */
+          }
+          if (changed()) return true;
+
+          insertAtCaret(editable, contextText);
+          editable.dispatchEvent(
+            new InputEvent('input', { bubbles: true, inputType: 'insertText', data: contextText })
+          );
+          if (changed()) return true;
+
+          try {
+            document.execCommand('insertText', false, contextText);
+          } catch (_) {
+            /* deprecated legacy fallback */
+          }
+          return true;
         },
         args: [msg.contextText],
       });
 
+      if (injection && injection.result === false) {
+        return { success: false, error: 'No chat input found on the page' };
+      }
       return { success: true };
     } catch (err) {
       console.error('[Kairo SW] Inject error:', err);
