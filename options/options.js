@@ -100,9 +100,14 @@ function OptionsPage() {
             setCapsuleCount(prev => prev + imported);
             return;
           }
+          const importedCapsule = {
+            ...capsules[i],
+            id: crypto.randomUUID(),
+            meta: { ...(capsules[i].meta || {}), importedAt: Date.now() }
+          };
           chrome.runtime.sendMessage({
             type: 'SAVE_CAPSULE',
-            capsule: capsules[i],
+            capsule: importedCapsule,
             options: { enrich: false },
           }, (res) => {
             if (res?.success) imported++;
