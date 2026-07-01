@@ -1,5 +1,7 @@
 // background/enricher.js — Claude API enrichment for raw capsule data
 
+const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+
 /**
  * Enriches a capsule by sending its raw conversation to Claude API
  * for structured extraction (title, summary, goals, constraints, stack, keyDecisions).
@@ -56,7 +58,7 @@ ${rawText}
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: DEFAULT_MODEL,
         max_tokens: 800,
         messages: [{ role: 'user', content: prompt }],
       }),
