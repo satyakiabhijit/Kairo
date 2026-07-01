@@ -64,7 +64,7 @@ ${rawText}
 
     if (!response.ok) {
       console.error('[Kairo Enricher] API error:', response.status, response.statusText);
-      return capsule;
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -89,6 +89,6 @@ ${rawText}
     };
   } catch (err) {
     console.error('[Kairo Enricher] Enrichment failed:', err);
-    return capsule; // return unenriched on any failure
+    throw err;
   }
 }
