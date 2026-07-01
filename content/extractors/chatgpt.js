@@ -57,6 +57,7 @@ export default {
       return turns.map((el, i) => ({
         role: i % 2 === 0 ? 'user' : 'assistant',
         text: el.innerText.trim(),
+        _lowConfidenceRole: true,
       })).filter(t => t.text.length > 0);
     }
 
@@ -70,6 +71,7 @@ export default {
         return deduped.map((el, i) => ({
           role: i % 2 === 0 ? 'user' : 'assistant',
           text: el.innerText.trim(),
+          _lowConfidenceRole: true,
         })).filter(t => t.text.length > 0);
       }
     }
@@ -84,6 +86,7 @@ export default {
         return textBlocks.map((el, i) => ({
           role: i % 2 === 0 ? 'user' : 'assistant',
           text: el.innerText.trim(),
+          _lowConfidenceRole: true,
         }));
       }
     }
