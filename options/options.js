@@ -3,13 +3,10 @@
 import { h, render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { html } from 'htm/preact';
+import { DEFAULT_SETTINGS, normalizeSettings } from '../shared/settings.js';
 
 function OptionsPage() {
-  const [settings, setSettings] = useState({
-    apiKey: '',
-    autoEnrich: false,
-    showFloatingButton: true,
-  });
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [toastMsg, setToastMsg] = useState('');
   const [capsuleCount, setCapsuleCount] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -18,7 +15,7 @@ function OptionsPage() {
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (res) => {
       if (res && typeof res === 'object') {
-        setSettings(prev => ({ ...prev, ...res }));
+        setSettings(prev => normalizeSettings({ ...prev, ...res }));
       }
     });
 
@@ -36,8 +33,10 @@ function OptionsPage() {
 
   // Save settings
   const handleSave = () => {
-    chrome.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings }, (res) => {
+    const normalizedSettings = normalizeSettings(settings);
+    chrome.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings: normalizedSettings }, (res) => {
       if (res?.success) {
+        setSettings(normalizedSettings);
         showToast('Settings saved successfully');
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -162,6 +161,9 @@ function OptionsPage() {
             placeholder="sk-ant-api03-..."
             value=${settings.apiKey}
             onInput=${e => setSettings({ ...settings, apiKey: e.target.value })}
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck=${false}
           />
         </div>
       </div>
