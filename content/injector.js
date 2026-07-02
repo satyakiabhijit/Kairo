@@ -5,6 +5,10 @@ import { buildInjectionText, insertTextIntoEditor } from '../shared/inject.js';
 let buttonWrapper = null;
 let currentTextarea = null;
 
+const VIEWPORT_MARGIN = 12;
+const BUTTON_SIZE = 32;
+const MENU_WIDTH = 250;
+
 export function injectButton(onCapture) {
   if (document.getElementById('kairo-container')) return;
 
@@ -312,32 +316,37 @@ function trackInputArea() {
       // Position just to the right of the input, slightly above the bottom
       buttonWrapper.style.display = 'flex';
 
+      let left;
+      let top;
+
       // Determine position based on platform
       if (location.hostname.includes('chatgpt.com')) {
         // Position outside the right side of the ChatGPT input bar
         // rect is the text area itself, which ends before the mic/send buttons. 
         // Adding ~110px pushes it past those buttons to sit cleanly on the right.
-        buttonWrapper.style.left = `${rect.right + 110}px`;
-        buttonWrapper.style.top = `${rect.bottom - 48}px`;
+        left = rect.right + 110;
+        top = rect.bottom - 48;
       } else if (location.hostname.includes('claude.ai')) {
         // Claude's ProseMirror editor is padded inside a card container.
         // We push it out by +24px to clear the outer card container border.
-        buttonWrapper.style.left = `${rect.right + 24}px`;
-        buttonWrapper.style.top = `${rect.bottom - 7}px`;
+        left = rect.right + 24;
+        top = rect.bottom - 7;
       } else if (location.hostname.includes('gemini.google.com')) {
         // Gemini's rich-textarea editor ends before the model dropdown and action buttons.
         // We push it out by +115px to sit cleanly outside on the right.
-        buttonWrapper.style.left = `${rect.right + 162}px`;
-        buttonWrapper.style.top = `${rect.bottom - 32}px`;
+        left = rect.right + 162;
+        top = rect.bottom - 32;
       } else if (location.hostname.includes('deepseek.com')) {
         // DeepSeek-specific position: lift it up to align with the vertical center of the card
-        buttonWrapper.style.left = `${rect.right + 16}px`;
-        buttonWrapper.style.top = `${rect.bottom - 58}px`;
+        left = rect.right + 16;
+        top = rect.bottom - 58;
       } else {
         // DeepSeek, etc.
-        buttonWrapper.style.left = `${rect.right + 12}px`;
-        buttonWrapper.style.top = `${rect.bottom - 40}px`;
+        left = rect.right + 12;
+        top = rect.bottom - 40;
       }
+
+      placeFloatingUi(buttonWrapper, menu, modal, left, top);
     } else {
       // Fallback: bottom right (write once until the state changes)
       if (lastKey === 'fallback' && buttonWrapper.style.display === 'flex') return;
@@ -385,6 +394,28 @@ function injectText(text) {
   } else {
     alert('Could not find an input box to inject into.');
   }
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function placeFloatingUi(container, menu, modal, preferredLeft, preferredTop) {
+  const maxLeft = window.innerWidth - BUTTON_SIZE - VIEWPORT_MARGIN;
+  const maxTop = window.innerHeight - BUTTON_SIZE - VIEWPORT_MARGIN;
+  const left = clamp(preferredLeft, VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, maxLeft));
+  const top = clamp(preferredTop, VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, maxTop));
+  const opensFromRight = left + MENU_WIDTH > window.innerWidth - VIEWPORT_MARGIN;
+
+  container.style.left = `${left}px`;
+  container.style.right = 'auto';
+  container.style.top = `${top}px`;
+  container.style.bottom = 'auto';
+
+  menu.style.right = opensFromRight ? '0' : 'auto';
+  menu.style.left = opensFromRight ? 'auto' : '0';
+  modal.style.right = opensFromRight ? '0' : 'auto';
+  modal.style.left = opensFromRight ? 'auto' : '0';
 }
 
 // Inject global animation styles if not already present
