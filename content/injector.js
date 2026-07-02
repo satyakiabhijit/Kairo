@@ -220,6 +220,26 @@ export function injectButton(onCapture) {
   window.__kairoTriggerCapture = runCapture;
 }
 
+// Registers the global capture trigger used by the keyboard shortcut and the
+// context menu, independent of the floating button. index.js calls this when the
+// button is hidden so Ctrl+Shift+S and "Capture with Kairo" keep working (#50).
+// When the button is shown, injectButton() installs its own button-aware trigger
+// (with in-menu status feedback), which is the desired richer behavior.
+export function registerCaptureTrigger(onCapture) {
+  let capturing = false;
+  window.__kairoTriggerCapture = async () => {
+    if (capturing) return;
+    capturing = true;
+    try {
+      await onCapture();
+    } catch (err) {
+      console.error('[Kairo] Capture error:', err);
+    } finally {
+      capturing = false;
+    }
+  };
+}
+
 function styleMenuOption(opt) {
   opt.style.cssText = `
     background: transparent;
