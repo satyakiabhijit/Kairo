@@ -160,6 +160,11 @@ export function injectButton(onCapture) {
     modal.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">Loading...</div>';
 
     chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (capsules) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo] GET_CAPSULES failed:', chrome.runtime.lastError.message);
+        modal.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">Could not load capsules.</div>';
+        return;
+      }
       if (!capsules || capsules.length === 0) {
         modal.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">No capsules found.</div>';
         return;

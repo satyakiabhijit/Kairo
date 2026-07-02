@@ -17,12 +17,20 @@ function OptionsPage() {
   // Load settings + capsule count on mount
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (res) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo Options] GET_SETTINGS failed:', chrome.runtime.lastError.message);
+        return;
+      }
       if (res && typeof res === 'object') {
         setSettings(prev => ({ ...prev, ...res }));
       }
     });
 
     chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (res) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo Options] GET_CAPSULES failed:', chrome.runtime.lastError.message);
+        return;
+      }
       if (Array.isArray(res)) {
         setCapsuleCount(res.length);
       }
@@ -37,6 +45,11 @@ function OptionsPage() {
   // Save settings
   const handleSave = () => {
     chrome.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings }, (res) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo Options] SAVE_SETTINGS failed:', chrome.runtime.lastError.message);
+        showToast('Failed to save settings');
+        return;
+      }
       if (res?.success) {
         showToast('Settings saved successfully');
         setSaved(true);
@@ -50,6 +63,11 @@ function OptionsPage() {
   // Export all capsules as JSON
   const handleExport = () => {
     chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (capsules) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo Options] GET_CAPSULES failed:', chrome.runtime.lastError.message);
+        showToast('Export failed');
+        return;
+      }
       if (!Array.isArray(capsules) || capsules.length === 0) {
         showToast('No capsules to export');
         return;
@@ -105,7 +123,11 @@ function OptionsPage() {
             capsule: capsules[i],
             options: { enrich: false },
           }, (res) => {
-            if (res?.success) imported++;
+            if (chrome.runtime.lastError) {
+              console.error('[Kairo Options] SAVE_CAPSULE failed:', chrome.runtime.lastError.message);
+            } else if (res?.success) {
+              imported++;
+            }
             saveNext(i + 1);
           });
         };
@@ -126,6 +148,11 @@ function OptionsPage() {
     if (!confirm('This is your last chance. Delete everything?')) return;
 
     chrome.runtime.sendMessage({ type: 'CLEAR_ALL' }, (res) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo Options] CLEAR_ALL failed:', chrome.runtime.lastError.message);
+        showToast('Failed to clear data');
+        return;
+      }
       if (res?.success) {
         setCapsuleCount(0);
         showToast('All capsules deleted');
