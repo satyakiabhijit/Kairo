@@ -1,6 +1,54 @@
 // background/enricher.js — Claude API enrichment for raw capsule data
 
 /**
+ * Extracts the first balanced top-level JSON object ({ ... }) from a string that
+ * may contain surrounding prose or markdown code fences. Returns the object
+ * substring, or null if none is found. Quotes and escapes are tracked so braces
+ * inside string values don't corrupt the depth count.
+ *
+ * @param {string} text
+ * @returns {string|null}
+ */
+function extractJsonObject(text) {
+  if (!text) return null;
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = inString;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (ch === '{') {
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Enriches a capsule by sending its raw conversation to Claude API
  * for structured extraction (title, summary, goals, constraints, stack, keyDecisions).
  *
@@ -70,7 +118,25 @@ ${rawText}
     const data = await response.json();
     const text = data.content?.[0]?.text || '{}';
 
-    const enriched = JSON.parse(text.replace(/```json|```/g, '').trim());
+    // Models sometimes wrap the JSON in prose or code fences; extract the first
+    // balanced { ... } object instead of assuming the whole reply is JSON.
+    const jsonText = extractJsonObject(text);
+    if (!jsonText) {
+      console.warn('[Kairo Enricher] No JSON object found in model response:', text);
+      return capsule;
+    }
+
+    let enriched;
+    try {
+      enriched = JSON.parse(jsonText);
+    } catch (parseErr) {
+      console.warn(
+        '[Kairo Enricher] Failed to parse JSON from model response:',
+        text,
+        parseErr
+      );
+      return capsule;
+    }
 
     console.log('[Kairo Enricher] Successfully enriched capsule:', enriched.title);
 
