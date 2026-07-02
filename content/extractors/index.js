@@ -4,12 +4,13 @@ import claudeExtractor from './claude.js';
 import chatgptExtractor from './chatgpt.js';
 import geminiExtractor from './gemini.js';
 import deepseekExtractor from './deepseek.js';
+import { getPlatformByHost } from '../../shared/platforms.js';
 
 const EXTRACTORS = {
-  'claude.ai': claudeExtractor,
-  'chatgpt.com': chatgptExtractor,
-  'gemini.google.com': geminiExtractor,
-  'chat.deepseek.com': deepseekExtractor,
+  claude: claudeExtractor,
+  chatgpt: chatgptExtractor,
+  gemini: geminiExtractor,
+  deepseek: deepseekExtractor,
 };
 
 /**
@@ -18,5 +19,6 @@ const EXTRACTORS = {
  * @returns {Object|null} The extractor object or null if unsupported
  */
 export function getExtractor(hostname) {
-  return EXTRACTORS[hostname] || null;
+  const platform = getPlatformByHost(hostname);
+  return platform ? EXTRACTORS[platform.key] || null : null;
 }
