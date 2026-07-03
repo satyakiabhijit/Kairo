@@ -3,28 +3,53 @@
 const STORAGE_KEY = 'kairo_capsules';
 const SETTINGS_KEY = 'kairo_settings';
 
+// chrome.storage has no transaction primitive, so overlapping read-modify-write
+// cycles can lose updates (last write wins). Every mutating operation is chained
+// through this module-level promise — a lightweight mutex — so each one runs to
+// completion (including its write) before the next one reads.
+let mutationChain = Promise.resolve();
+
+function enqueueMutation(mutator) {
+  const result = mutationChain.then(mutator, mutator);
+  // Keep the chain alive whether or not an individual mutation rejects.
+  mutationChain = result.then(
+    () => {},
+    () => {}
+  );
+  return result;
+}
+
+// Read-modify-write upsert. NOT locked on its own — callers must invoke it from
+// within enqueueMutation so the read observes the previous mutation's write.
+async function upsertCapsuleUnlocked(capsule) {
+  const existing = await getCapsules();
+  const idx = existing.findIndex(c => c.id === capsule.id);
+
+  if (idx > -1) {
+    existing[idx] = { ...existing[idx], ...capsule, updatedAt: Date.now() };
+  } else {
+    existing.unshift(capsule);
+  }
+
+  await chrome.storage.local.set({ [STORAGE_KEY]: existing });
+}
+
 /**
  * Save or upsert a capsule. Newest-first ordering.
- * Atomic: read → modify → write in one async block.
+ * Serialized through a module-level mutation queue so concurrent saves cannot
+ * lose each other's writes (chrome.storage offers no transaction primitive).
  * @param {Object} capsule
  */
 export async function saveCapsule(capsule) {
-  try {
-    const existing = await getCapsules();
-    const idx = existing.findIndex(c => c.id === capsule.id);
-
-    if (idx > -1) {
-      existing[idx] = { ...existing[idx], ...capsule, updatedAt: Date.now() };
-    } else {
-      existing.unshift(capsule);
+  return enqueueMutation(async () => {
+    try {
+      await upsertCapsuleUnlocked(capsule);
+      return { success: true };
+    } catch (err) {
+      console.error('[Kairo] Storage write error:', err);
+      return { success: false, error: err.message };
     }
-
-    await chrome.storage.local.set({ [STORAGE_KEY]: existing });
-    return { success: true };
-  } catch (err) {
-    console.error('[Kairo] Storage write error:', err);
-    return { success: false, error: err.message };
-  }
+  });
 }
 
 /**
@@ -46,15 +71,17 @@ export async function getCapsules() {
  * @param {string} id
  */
 export async function deleteCapsule(id) {
-  try {
-    const existing = await getCapsules();
-    const filtered = existing.filter(c => c.id !== id);
-    await chrome.storage.local.set({ [STORAGE_KEY]: filtered });
-    return { success: true };
-  } catch (err) {
-    console.error('[Kairo] Delete error:', err);
-    return { success: false, error: err.message };
-  }
+  return enqueueMutation(async () => {
+    try {
+      const existing = await getCapsules();
+      const filtered = existing.filter(c => c.id !== id);
+      await chrome.storage.local.set({ [STORAGE_KEY]: filtered });
+      return { success: true };
+    } catch (err) {
+      console.error('[Kairo] Delete error:', err);
+      return { success: false, error: err.message };
+    }
+  });
 }
 
 /**
@@ -63,18 +90,20 @@ export async function deleteCapsule(id) {
  * @param {Object} updates - Fields to merge into the capsule
  */
 export async function updateCapsule(id, updates) {
-  try {
-    const capsules = await getCapsules();
-    const capsule = capsules.find(c => c.id === id);
-    if (!capsule) {
-      return { success: false, error: 'Capsule not found' };
+  return enqueueMutation(async () => {
+    try {
+      const capsules = await getCapsules();
+      const capsule = capsules.find(c => c.id === id);
+      if (!capsule) {
+        return { success: false, error: 'Capsule not found' };
+      }
+      await upsertCapsuleUnlocked({ ...capsule, ...updates, updatedAt: Date.now() });
+      return { success: true };
+    } catch (err) {
+      console.error('[Kairo] Update error:', err);
+      return { success: false, error: err.message };
     }
-    await saveCapsule({ ...capsule, ...updates, updatedAt: Date.now() });
-    return { success: true };
-  } catch (err) {
-    console.error('[Kairo] Update error:', err);
-    return { success: false, error: err.message };
-  }
+  });
 }
 
 /**
