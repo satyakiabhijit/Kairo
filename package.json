@@ -19,8 +19,16 @@
     "capsule",
     "kairo"
   ],
-  "author": "",
+  "author": "satyakiabhijit",
   "license": "MIT",
+  "homepage": "https://github.com/satyakiabhijit/Kairo#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satyakiabhijit/Kairo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/satyakiabhijit/Kairo/issues"
+  },
   "dependencies": {
     "htm": "^3.1.1",
     "preact": "^10.25.4",
