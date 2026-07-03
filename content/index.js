@@ -1,7 +1,7 @@
 // content/index.js — Entry point: detects platform, loads extractor, injects capture button
 
 import { getExtractor } from './extractors/index.js';
-import { injectButton, promptCapsuleName } from './injector.js';
+import { injectButton, promptCapsuleName, registerCaptureTrigger } from './injector.js';
 import { createCapsule } from '../shared/capsule.js';
 
 (async function init() {
@@ -17,21 +17,19 @@ import { createCapsule } from '../shared/capsule.js';
 
     // Check settings (graceful fallback)
     let autoEnrich = false;
+    let showButton = true;
     try {
       const settings = await chrome.storage.sync.get('kairo_settings');
-      const showButton = settings.kairo_settings?.showFloatingButton !== false;
+      showButton = settings.kairo_settings?.showFloatingButton !== false;
       autoEnrich = settings.kairo_settings?.autoEnrich === true;
-
-      if (!showButton) {
-        console.log('[Kairo] Floating button disabled in settings');
-        return;
-      }
     } catch (settingsErr) {
       console.warn('[Kairo] Could not read settings, using defaults:', settingsErr);
     }
 
-    // Inject the capture button
-    injectButton(async () => {
+    // Capture routine — shared by the floating button and the headless
+    // keyboard-shortcut / context-menu trigger. Defined regardless of the button
+    // setting so capture keeps working when the button is hidden (issue #50).
+    const captureHandler = async () => {
       // Ask user for capsule name using modern custom modal
       const customTitle = await promptCapsuleName();
       if (customTitle === null) {
@@ -125,7 +123,17 @@ import { createCapsule } from '../shared/capsule.js';
 
       console.log(`[Kairo] ✓ Capsule saved successfully: ${result.capsule?.title || capsule.id}`);
       return result;
-    });
+    };
+
+    // Always register the keyboard-shortcut / context-menu capture trigger.
+    // Only render the floating button when the user hasn't disabled it — but the
+    // trigger is registered either way, so capture is never silently lost (#50).
+    if (showButton) {
+      injectButton(captureHandler);
+    } else {
+      console.log('[Kairo] Floating button disabled in settings — registering capture trigger only (keyboard shortcut + context menu still work)');
+      registerCaptureTrigger(captureHandler);
+    }
 
     console.log('[Kairo] Content script initialized');
   } catch (err) {
