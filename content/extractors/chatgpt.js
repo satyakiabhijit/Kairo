@@ -2,6 +2,60 @@
 // Serves chatgpt.com (the legacy OpenAI chat host permanently redirects here)
 // Selectors verified: May 2026
 
+/**
+ * Best-effort per-element role detection for the fallback strategies, replacing
+ * blind positional (i % 2) alternation. Inspects the element (and, for explicit
+ * role attributes, its descendants) for the same signals the primary strategies
+ * rely on — author-role / data-role / data-testid attributes and user vs
+ * assistant class-name patterns. Returns 'unknown' when no reliable signal
+ * exists, so ambiguous turns are flagged rather than mislabeled.
+ *
+ * @param {Element} el
+ * @returns {'user'|'assistant'|'unknown'}
+ */
+function detectRole(el) {
+  // 1. Explicit author-role attribute (element or descendant) — most reliable.
+  const authorEl = el.matches('[data-message-author-role]')
+    ? el
+    : el.querySelector('[data-message-author-role]');
+  if (authorEl) {
+    return authorEl.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant';
+  }
+
+  // 2. Explicit data-role attribute (element or descendant).
+  const dataRoleEl = el.matches('[data-role]') ? el : el.querySelector('[data-role]');
+  if (dataRoleEl) {
+    const r = (dataRoleEl.getAttribute('data-role') || '').toLowerCase();
+    if (r === 'user' || r === 'human') return 'user';
+    if (r) return 'assistant';
+  }
+
+  // 3. Claude-style data-testid turn markers (element or descendant).
+  const testidEl = el.matches('[data-testid]') ? el : el.querySelector('[data-testid]');
+  if (testidEl) {
+    const t = (testidEl.getAttribute('data-testid') || '').toLowerCase();
+    if (t.includes('human') || t.includes('user')) return 'user';
+    if (t.includes('ai-turn') || t.includes('assistant')) return 'assistant';
+  }
+
+  // 4. Class-name signals — the element's own classes, then any descendant's.
+  //    Substring matching mirrors this codebase's existing convention
+  //    (e.g. classList.toString().includes('user')).
+  const selfCls = (typeof el.className === 'string' ? el.className : '').toLowerCase();
+  if (selfCls.includes('user') || selfCls.includes('human')) return 'user';
+  if (selfCls.includes('assistant') || selfCls.includes('bot') || selfCls.includes('model')) {
+    return 'assistant';
+  }
+  for (const child of el.querySelectorAll('[class]')) {
+    const c = (typeof child.className === 'string' ? child.className : '').toLowerCase();
+    if (c.includes('user') || c.includes('human')) return 'user';
+    if (c.includes('assistant') || c.includes('bot') || c.includes('model')) return 'assistant';
+  }
+
+  // 5. No reliable signal.
+  return 'unknown';
+}
+
 export default {
   platform: 'chatgpt',
 
@@ -54,9 +108,10 @@ export default {
     turns = [...document.querySelectorAll('main .group')];
     if (turns.length >= 2) {
       console.log(`[Kairo Extractor] ChatGPT: ${turns.length} turns (.group in main)`);
-      return turns.map((el, i) => ({
-        role: i % 2 === 0 ? 'user' : 'assistant',
+      return turns.map(el => ({
+        role: detectRole(el),
         text: el.innerText.trim(),
+        _lowConfidenceRole: true,
       })).filter(t => t.text.length > 0);
     }
 
@@ -67,9 +122,10 @@ export default {
       const deduped = turns.filter(el => !turns.some(other => other !== el && other.contains(el)));
       if (deduped.length >= 2) {
         console.log(`[Kairo Extractor] ChatGPT: ${deduped.length} turns (div[class*=message] deduped)`);
-        return deduped.map((el, i) => ({
-          role: i % 2 === 0 ? 'user' : 'assistant',
+        return deduped.map(el => ({
+          role: detectRole(el),
           text: el.innerText.trim(),
+          _lowConfidenceRole: true,
         })).filter(t => t.text.length > 0);
       }
     }
@@ -81,9 +137,10 @@ export default {
       const textBlocks = allBlocks.filter(el => el.innerText.trim().length > 30);
       if (textBlocks.length >= 2) {
         console.log(`[Kairo Extractor] ChatGPT: ${textBlocks.length} blocks (main children)`);
-        return textBlocks.map((el, i) => ({
-          role: i % 2 === 0 ? 'user' : 'assistant',
+        return textBlocks.map(el => ({
+          role: detectRole(el),
           text: el.innerText.trim(),
+          _lowConfidenceRole: true,
         }));
       }
     }

@@ -6,7 +6,7 @@ Security updates apply to the latest released version of the extension.
 
 ## Reporting a Vulnerability
 
-If you find a security issue, do not open a public issue with exploit details. Report it privately to the maintainers with:
+If you find a security issue, do not open a public issue with exploit details. Report it privately to the maintainers at security@kairo.com or via GitHub Security Advisories with:
 
 - A short description of the issue
 - The browser and extension version

@@ -11,7 +11,9 @@
     "build:chrome": "cross-env BROWSER=chrome vite build --mode production",
     "build:firefox": "cross-env BROWSER=firefox vite build --mode production",
     "dev:run-ff": "web-ext run --source-dir dist-firefox --target firefox-desktop",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "keywords": [
     "browser-extension",
@@ -20,8 +22,16 @@
     "capsule",
     "kairo"
   ],
-  "author": "",
+  "author": "satyakiabhijit",
   "license": "MIT",
+  "homepage": "https://github.com/satyakiabhijit/Kairo#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satyakiabhijit/Kairo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/satyakiabhijit/Kairo/issues"
+  },
   "dependencies": {
     "htm": "^3.1.1",
     "preact": "^10.25.4",
@@ -31,6 +41,8 @@
     "cross-env": "^7.0.3",
     "vite": "^6.3.5",
     "vite-plugin-web-extension": "^4.4.3",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5"
   }
 }

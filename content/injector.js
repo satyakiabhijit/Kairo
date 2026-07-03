@@ -160,6 +160,11 @@ export function injectButton(onCapture) {
     modal.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">Loading...</div>';
 
     chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (capsules) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo] GET_CAPSULES failed:', chrome.runtime.lastError.message);
+        modal.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">Could not load capsules.</div>';
+        return;
+      }
       if (!capsules || capsules.length === 0) {
         modal.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">No capsules found.</div>';
         return;
@@ -203,7 +208,7 @@ export function injectButton(onCapture) {
         });
 
         item.addEventListener('click', () => {
-          injectTextAndSend(buildInjectionText(capsule) || 'No content found.');
+          injectText(buildInjectionText(capsule) || 'No content found.');
           modal.style.display = 'none';
         });
 
@@ -218,6 +223,26 @@ export function injectButton(onCapture) {
   // Expose the capture trigger for keyboard shortcut + context menu.
   // The service worker invokes this inside the content script isolated world.
   window.__kairoTriggerCapture = runCapture;
+}
+
+// Registers the global capture trigger used by the keyboard shortcut and the
+// context menu, independent of the floating button. index.js calls this when the
+// button is hidden so Ctrl+Shift+S and "Capture with Kairo" keep working (#50).
+// When the button is shown, injectButton() installs its own button-aware trigger
+// (with in-menu status feedback), which is the desired richer behavior.
+export function registerCaptureTrigger(onCapture) {
+  let capturing = false;
+  window.__kairoTriggerCapture = async () => {
+    if (capturing) return;
+    capturing = true;
+    try {
+      await onCapture();
+    } catch (err) {
+      console.error('[Kairo] Capture error:', err);
+    } finally {
+      capturing = false;
+    }
+  };
 }
 
 function styleMenuOption(opt) {
@@ -292,7 +317,7 @@ function trackInputArea() {
           input.style.outlineOffset = '';
           const text = e.dataTransfer.getData('text/plain');
           if (text) {
-            injectTextAndSend(text);
+            injectText(text);
           }
         });
 
@@ -372,56 +397,18 @@ function trackInputArea() {
   scheduleUpdate();
 }
 
-function injectTextAndSend(text) {
+function injectText(text) {
   if (currentTextarea) {
     // Editor-aware insertion that works across plain textareas and the rich
     // contenteditable editors used by Claude (ProseMirror) and Gemini, replacing
     // the deprecated document.execCommand('insertText') path that silently failed
     // on those platforms.
+    //
+    // Inject only: populate the input and leave the caret there so the user can
+    // review, edit, or add to the context and press Send themselves (issue #29).
     insertTextIntoEditor(currentTextarea, text);
-
-    // Yield to the event loop so the host framework can process the input state, then auto-send
-    setTimeout(() => {
-      triggerSend();
-    }, 150);
   } else {
     alert('Could not find an input box to inject into.');
-  }
-}
-
-function triggerSend() {
-  // Selector list to cover Claude, ChatGPT, Gemini, and DeepSeek send buttons
-  const sendSelectors = [
-    'button[data-testid="send-button"]',        // ChatGPT & Claude fallback
-    'button[data-testid="composer-button"]',    // ChatGPT composer button
-    'button[aria-label*="send" i]',              // General (matches Claude, Gemini, etc.)
-    'button[class*="send" i]',                  // DeepSeek and custom chat layers
-    'button[id*="send" i]',
-    'div[role="button"][aria-label*="send" i]',
-    '.send-button'
-  ];
-
-  for (const selector of sendSelectors) {
-    const btn = document.querySelector(selector);
-    if (btn && !btn.disabled) {
-      btn.click();
-      console.log('[Kairo] Auto-send triggered via action button.');
-      return;
-    }
-  }
-
-  // Fallback: dispatch keydown Enter to submit
-  if (currentTextarea) {
-    const enterDown = new KeyboardEvent('keydown', {
-      key: 'Enter',
-      code: 'Enter',
-      keyCode: 13,
-      which: 13,
-      bubbles: true,
-      cancelable: true
-    });
-    currentTextarea.dispatchEvent(enterDown);
-    console.log('[Kairo] Auto-send fallback: Dispatched Enter keystroke.');
   }
 }
 

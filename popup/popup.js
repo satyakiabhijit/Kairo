@@ -19,6 +19,11 @@ function Popup() {
   // Load capsules on mount
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo Popup] GET_CAPSULES failed:', chrome.runtime.lastError.message);
+        setLoading(false);
+        return;
+      }
       if (Array.isArray(response)) {
         setCapsules(response);
       }
@@ -76,6 +81,11 @@ function Popup() {
         type: 'INJECT_CONTEXT',
         contextText,
       }, (res) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Kairo Popup] INJECT_CONTEXT failed:', chrome.runtime.lastError.message);
+          showToast('Injection failed');
+          return;
+        }
         if (res?.success) {
           showToast('Injected into chat!');
         } else {
@@ -91,6 +101,12 @@ function Popup() {
   // ─── Delete capsule ────────────────────────────────────────
   const handleDelete = useCallback((id) => {
     chrome.runtime.sendMessage({ type: 'DELETE_CAPSULE', id }, (res) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Kairo Popup] DELETE_CAPSULE failed:', chrome.runtime.lastError.message);
+        showToast('Delete failed');
+        setDeleteTarget(null);
+        return;
+      }
       if (res?.success) {
         setCapsules(prev => prev.filter(c => c.id !== id));
         showToast('Capsule deleted');
