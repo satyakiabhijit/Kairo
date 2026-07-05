@@ -33,11 +33,16 @@ function Popup() {
 
   // Filter logic
   const filtered = capsules.filter(c => {
-    const q = query.toLowerCase();
+    const q = query.trim().toLowerCase();
     const matchQuery = !q ||
       (c.title || '').toLowerCase().includes(q) ||
       (c.content?.summary || '').toLowerCase().includes(q) ||
-      (c.meta?.tags || []).some(t => t.toLowerCase().includes(q));
+      (c.content?.rawSnippet || '').toLowerCase().includes(q) ||
+      (c.meta?.tags || []).some(t => t.toLowerCase().includes(q)) ||
+      (c.content?.goals || []).some(g => g.toLowerCase().includes(q)) ||
+      (c.content?.stack || []).some(s => s.toLowerCase().includes(q)) ||
+      (c.content?.constraints || []).some(co => co.toLowerCase().includes(q)) ||
+      (c.content?.keyDecisions || []).some(kd => kd.toLowerCase().includes(q));
     const matchFolder = activeFolder ? c.meta?.folder === activeFolder : true;
     const matchPlatform = activePlatform ? c.source === activePlatform : true;
     return matchQuery && matchFolder && matchPlatform;
@@ -148,6 +153,7 @@ function Popup() {
           placeholder="Search capsules…"
           value=${query}
           onInput=${e => setQuery(e.target.value)}
+          onKeyDown=${e => { if (e.key === 'Enter') e.preventDefault(); }}
           id="kairo-search"
         />
       </div>
