@@ -15,7 +15,8 @@
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
     "https://chat.deepseek.com/*",
-    "https://api.anthropic.com/*"
+    "https://api.anthropic.com/*",
+    "https://api.notion.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",

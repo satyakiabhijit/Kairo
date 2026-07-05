@@ -61,6 +61,179 @@ const MESSAGE_HANDLERS = {
     return clearAllCapsules();
   },
 
+  async EXPORT_TO_NOTION(msg) {
+    try {
+      const settings = await getSettings();
+      if (!settings.notionToken || !settings.notionDbId) {
+        return { success: false, error: 'Notion Integration is not configured in settings.' };
+      }
+
+      const capsules = await getCapsules();
+      const capsule = capsules.find(c => c.id === msg.id);
+      if (!capsule) {
+        return { success: false, error: 'Capsule not found' };
+      }
+
+      const children = [];
+
+      if (capsule.content?.summary) {
+        children.push({
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: 'Summary' } }]
+          }
+        });
+        children.push({
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{ type: 'text', text: { content: capsule.content.summary.slice(0, 2000) } }]
+          }
+        });
+      }
+
+      if (capsule.content?.stack && capsule.content.stack.length > 0) {
+        children.push({
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: 'Tech Stack' } }]
+          }
+        });
+        capsule.content.stack.forEach(tech => {
+          children.push({
+            object: 'block',
+            type: 'bulleted_list_item',
+            bulleted_list_item: {
+              rich_text: [{ type: 'text', text: { content: tech.slice(0, 2000) } }]
+            }
+          });
+        });
+      }
+
+      if (capsule.content?.goals && capsule.content.goals.length > 0) {
+        children.push({
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: 'Goals' } }]
+          }
+        });
+        capsule.content.goals.forEach(goal => {
+          children.push({
+            object: 'block',
+            type: 'bulleted_list_item',
+            bulleted_list_item: {
+              rich_text: [{ type: 'text', text: { content: goal.slice(0, 2000) } }]
+            }
+          });
+        });
+      }
+
+      if (capsule.content?.keyDecisions && capsule.content.keyDecisions.length > 0) {
+        children.push({
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: 'Key Decisions' } }]
+          }
+        });
+        capsule.content.keyDecisions.forEach(decision => {
+          children.push({
+            object: 'block',
+            type: 'bulleted_list_item',
+            bulleted_list_item: {
+              rich_text: [{ type: 'text', text: { content: decision.slice(0, 2000) } }]
+            }
+          });
+        });
+      }
+
+      if (capsule.url) {
+        children.push({
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: 'Source URL' } }]
+          }
+        });
+        children.push({
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{
+              type: 'text',
+              text: {
+                content: capsule.url.slice(0, 2000),
+                link: { url: capsule.url.slice(0, 2000) }
+              }
+            }]
+          }
+        });
+      }
+
+      const titleProp = [
+        {
+          text: {
+            content: (capsule.title || 'Untitled Capsule').slice(0, 2000)
+          }
+        }
+      ];
+
+      const payload = {
+        parent: { database_id: settings.notionDbId },
+        properties: {
+          Name: {
+            title: titleProp
+          }
+        },
+        children
+      };
+
+      const res = await fetch('https://api.notion.com/v1/pages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${settings.notionToken}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        if (errData?.code === 'validation_error') {
+          payload.properties = {
+            title: {
+              title: titleProp
+            }
+          };
+          const fallbackRes = await fetch('https://api.notion.com/v1/pages', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${settings.notionToken}`,
+              'Content-Type': 'application/json',
+              'Notion-Version': '2022-06-28'
+            },
+            body: JSON.stringify(payload)
+          });
+          if (!fallbackRes.ok) {
+            const fbErr = await fallbackRes.json();
+            return { success: false, error: fbErr?.message || fallbackRes.statusText };
+          }
+          return { success: true };
+        }
+        return { success: false, error: errData?.message || res.statusText };
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('[Kairo SW] Notion export error:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
   async INJECT_CONTEXT(msg) {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
