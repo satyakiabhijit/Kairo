@@ -3,39 +3,46 @@
 import { h, render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { html } from 'htm/preact';
+import { t } from '../shared/i18n.js';
 
 function OptionsPage() {
   const [settings, setSettings] = useState({
     apiKey: '',
     autoEnrich: false,
     showFloatingButton: true,
+    locale: 'en',
+    theme: 'dark',
+    autoTag: false,
+    notionEnabled: false,
+    notionToken: '',
+    notionDbId: '',
+    experimentalMerge: false,
+    experimentalDebug: false,
   });
   const [toastMsg, setToastMsg] = useState('');
   const [capsuleCount, setCapsuleCount] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
 
   // Load settings + capsule count on mount
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (res) => {
-      if (chrome.runtime.lastError) {
-        console.error('[Kairo Options] GET_SETTINGS failed:', chrome.runtime.lastError.message);
-        return;
-      }
       if (res && typeof res === 'object') {
         setSettings(prev => ({ ...prev, ...res }));
       }
     });
 
     chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (res) => {
-      if (chrome.runtime.lastError) {
-        console.error('[Kairo Options] GET_CAPSULES failed:', chrome.runtime.lastError.message);
-        return;
-      }
       if (Array.isArray(res)) {
         setCapsuleCount(res.length);
       }
     });
   }, []);
+
+  // Persist theme class on body
+  useEffect(() => {
+    document.body.className = settings.theme === 'light' ? 'light-theme' : '';
+  }, [settings.theme]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -46,16 +53,16 @@ function OptionsPage() {
   const handleSave = () => {
     chrome.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings }, (res) => {
       if (chrome.runtime.lastError) {
-        console.error('[Kairo Options] SAVE_SETTINGS failed:', chrome.runtime.lastError.message);
-        showToast('Failed to save settings');
+        console.error('[Kairo Options] Save settings failed:', chrome.runtime.lastError.message);
+        showToast(t('toastSettingsSaveFailed', settings.locale));
         return;
       }
       if (res?.success) {
-        showToast('Settings saved successfully');
+        showToast(t('toastSettingsSaved', settings.locale));
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       } else {
-        showToast('Failed to save settings');
+        showToast(t('toastSettingsSaveFailed', settings.locale));
       }
     });
   };
@@ -63,13 +70,8 @@ function OptionsPage() {
   // Export all capsules as JSON
   const handleExport = () => {
     chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (capsules) => {
-      if (chrome.runtime.lastError) {
-        console.error('[Kairo Options] GET_CAPSULES failed:', chrome.runtime.lastError.message);
-        showToast('Export failed');
-        return;
-      }
       if (!Array.isArray(capsules) || capsules.length === 0) {
-        showToast('No capsules to export');
+        showToast(t('toastNoCapsulesExport', settings.locale));
         return;
       }
 
@@ -87,7 +89,7 @@ function OptionsPage() {
       a.download = `kairo-capsules-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast(`Exported ${capsules.length} capsules`);
+      showToast(t('toastExportSuccess', settings.locale, { count: capsules.length }));
     });
   };
 
@@ -107,32 +109,23 @@ function OptionsPage() {
         const capsules = parsed.capsules || parsed;
 
         if (!Array.isArray(capsules)) {
-          showToast('Invalid file format');
+          showToast(t('toastImportInvalid', settings.locale));
           return;
         }
 
         let imported = 0;
         const saveNext = (i) => {
           if (i >= capsules.length) {
-            showToast(`Imported ${imported} capsules`);
+            showToast(t('toastImportSuccess', settings.locale, { count: imported }));
             setCapsuleCount(prev => prev + imported);
             return;
           }
-          const importedCapsule = {
-            ...capsules[i],
-            id: crypto.randomUUID(),
-            meta: { ...(capsules[i].meta || {}), importedAt: Date.now() }
-          };
           chrome.runtime.sendMessage({
             type: 'SAVE_CAPSULE',
-            capsule: importedCapsule,
+            capsule: capsules[i],
             options: { enrich: false },
           }, (res) => {
-            if (chrome.runtime.lastError) {
-              console.error('[Kairo Options] SAVE_CAPSULE failed:', chrome.runtime.lastError.message);
-            } else if (res?.success) {
-              imported++;
-            }
+            if (res?.success) imported++;
             saveNext(i + 1);
           });
         };
@@ -140,7 +133,7 @@ function OptionsPage() {
         saveNext(0);
       } catch (err) {
         console.error('[Kairo Options] Import error:', err);
-        showToast('Failed to parse import file');
+        showToast(t('toastImportFailed', settings.locale));
       }
     };
     reader.readAsText(file);
@@ -149,154 +142,360 @@ function OptionsPage() {
 
   // Clear all data
   const handleClearAll = () => {
-    if (!confirm('This will permanently delete all capsules. Are you sure?')) return;
+    if (!confirm(t('deleteConfirmText', settings.locale))) return;
     if (!confirm('This is your last chance. Delete everything?')) return;
 
     chrome.runtime.sendMessage({ type: 'CLEAR_ALL' }, (res) => {
-      if (chrome.runtime.lastError) {
-        console.error('[Kairo Options] CLEAR_ALL failed:', chrome.runtime.lastError.message);
-        showToast('Failed to clear data');
-        return;
-      }
       if (res?.success) {
         setCapsuleCount(0);
-        showToast('All capsules deleted');
+        showToast(t('toastClearSuccess', settings.locale));
       } else {
-        showToast('Failed to clear data');
+        showToast(t('toastClearFailed', settings.locale));
       }
     });
   };
+
+  const loc = settings.locale;
 
   return html`
     <div class="options-container">
 
       <!-- Header -->
-      <div class="options-header" style="display: flex; align-items: center; gap: 14px; margin-bottom: 40px;">
+      <div class="options-header" style="display: flex; align-items: center; gap: 14px; margin-bottom: 30px;">
         <img src="../assets/brand-logo.png" style="width: 46px; height: 46px; object-fit: contain; filter: brightness(0) invert(1);" />
         <div>
-          <h1 style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; background: linear-gradient(135deg, #6c47ff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Kairo Settings</h1>
-          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">Configure your AI context capture workflow. ${capsuleCount > 0 ? `You have ${capsuleCount} saved capsules.` : ''}</p>
+          <h1 style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; background: linear-gradient(135deg, #6c47ff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            ${t('settingsTitle', loc)}
+          </h1>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+            ${t('settingsDescCount', loc, { count: capsuleCount })}
+          </p>
         </div>
       </div>
 
-      <!-- API Key Section -->
-      <div class="section" id="section-api">
-        <div class="section-title">Claude API Key</div>
-        <div class="section-desc">
-          Required for AI-powered context enrichment. Your key is stored securely in browser sync storage and never sent to any server except Anthropic's API.
-        </div>
-        <div class="field">
-          <label class="field-label" for="api-key-input">API Key</label>
-          <input
-            class="text-input"
-            type="password"
-            id="api-key-input"
-            placeholder="sk-ant-api03-..."
-            value=${settings.apiKey}
-            onInput=${e => setSettings({ ...settings, apiKey: e.target.value })}
-          />
-        </div>
+      <!-- Tab Navigation -->
+      <div style="
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 10px;
+      ">
+        <button 
+          style="
+            background: ${activeTab === 'general' ? 'var(--accent)' : 'transparent'};
+            color: ${activeTab === 'general' ? '#fff' : 'var(--text-secondary)'};
+            border: 1px solid ${activeTab === 'general' ? 'var(--accent)' : 'var(--border-subtle)'};
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+          "
+          onClick=${() => setActiveTab('general')}
+          id="tab-btn-general"
+        >
+          ${t('tabGeneral', loc)}
+        </button>
+        <button 
+          style="
+            background: ${activeTab === 'advanced' ? 'var(--accent)' : 'transparent'};
+            color: ${activeTab === 'advanced' ? '#fff' : 'var(--text-secondary)'};
+            border: 1px solid ${activeTab === 'advanced' ? 'var(--accent)' : 'var(--border-subtle)'};
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+          "
+          onClick=${() => setActiveTab('advanced')}
+          id="tab-btn-advanced"
+        >
+          ${t('tabAdvanced', loc)}
+        </button>
       </div>
 
-      <!-- Toggles Section -->
-      <div class="section" id="section-toggles">
-        <div class="section-title">Behavior</div>
-        <div class="section-desc">Control how Kairo works on AI chat pages.</div>
-
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <div class="toggle-label">Auto-enrich on capture</div>
-            <div class="toggle-desc">Automatically extract goals, stack, and key decisions using Claude API when saving a capsule.</div>
+      <!-- General Tab Content -->
+      ${activeTab === 'general' && html`
+        <div>
+          <!-- API Key Section -->
+          <div class="section" id="section-api">
+            <div class="section-title">${t('claudeApiKeySection', loc)}</div>
+            <div class="section-desc">
+              ${t('claudeApiKeyDesc', loc)}
+            </div>
+            <div class="field">
+              <label class="field-label" for="api-key-input">${t('apiKeyField', loc)}</label>
+              <input
+                class="text-input"
+                type="password"
+                id="api-key-input"
+                placeholder="sk-ant-api03-..."
+                value=${settings.apiKey}
+                onInput=${e => setSettings({ ...settings, apiKey: e.target.value })}
+              />
+            </div>
           </div>
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              checked=${settings.autoEnrich}
-              onChange=${e => setSettings({ ...settings, autoEnrich: e.target.checked })}
-              id="toggle-auto-enrich"
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
 
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <div class="toggle-label">Show floating capture button</div>
-            <div class="toggle-desc">Display the capture button on supported AI chat pages. You can still use Ctrl+Shift+S even if this is off.</div>
+          <!-- Behavior Section -->
+          <div class="section" id="section-toggles">
+            <div class="section-title">${t('behaviorSection', loc)}</div>
+            <div class="section-desc">${t('behaviorDesc', loc)}</div>
+
+            <!-- Auto-enrich toggle -->
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">${t('autoEnrichField', loc)}</div>
+                <div class="toggle-desc">${t('autoEnrichDesc', loc)}</div>
+              </div>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked=${settings.autoEnrich}
+                  onChange=${e => setSettings({ ...settings, autoEnrich: e.target.checked })}
+                  id="toggle-auto-enrich"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Auto-tag toggle -->
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">${t('autoTagField', loc)}</div>
+                <div class="toggle-desc">${t('autoTagDesc', loc)}</div>
+              </div>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked=${settings.autoTag}
+                  onChange=${e => setSettings({ ...settings, autoTag: e.target.checked })}
+                  id="toggle-auto-tag"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Show floating button toggle -->
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">${t('showFloatingBtnField', loc)}</div>
+                <div class="toggle-desc">${t('showFloatingBtnDesc', loc)}</div>
+              </div>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked=${settings.showFloatingButton}
+                  onChange=${e => setSettings({ ...settings, showFloatingButton: e.target.checked })}
+                  id="toggle-floating-btn"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
           </div>
-          <label class="toggle-switch">
-            <input
-              type="checkbox"
-              checked=${settings.showFloatingButton}
-              onChange=${e => setSettings({ ...settings, showFloatingButton: e.target.checked })}
-              id="toggle-floating-btn"
-            />
-            <span class="toggle-slider"></span>
-          </label>
+
+          <!-- Localization & Theme Section -->
+          <div class="section" id="section-appearance">
+            <div class="section-title">${t('languageField', loc)} & ${t('themeField', loc)}</div>
+            <div class="section-desc">Customize language and visual preferences.</div>
+
+            <!-- Language Dropdown -->
+            <div class="toggle-row" style="border-bottom: 1px solid var(--border-subtle);">
+              <div class="toggle-info">
+                <div class="toggle-label">${t('languageField', loc)}</div>
+                <div class="toggle-desc">${t('languageDesc', loc)}</div>
+              </div>
+              <select 
+                class="text-input" 
+                style="width: 140px; background: var(--bg-input); color: var(--text-primary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); padding: 6px;"
+                value=${settings.locale}
+                onChange=${e => setSettings({ ...settings, locale: e.target.value })}
+                id="select-locale"
+              >
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+            </div>
+
+            <!-- Theme Dropdown -->
+            <div class="toggle-row" style="border-bottom: none; padding-bottom: 0;">
+              <div class="toggle-info">
+                <div class="toggle-label">${t('themeField', loc)}</div>
+                <div class="toggle-desc">${t('themeDesc', loc)}</div>
+              </div>
+              <select 
+                class="text-input" 
+                style="width: 140px; background: var(--bg-input); color: var(--text-primary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); padding: 6px;"
+                value=${settings.theme}
+                onChange=${e => setSettings({ ...settings, theme: e.target.value })}
+                id="select-theme"
+              >
+                <option value="dark">${t('themeDark', loc)}</option>
+                <option value="light">${t('themeLight', loc)}</option>
+              </select>
+            </div>
+          </div>
         </div>
-      </div>
+      `}
+
+      <!-- Advanced Tab Content -->
+      ${activeTab === 'advanced' && html`
+        <div>
+          <!-- Notion Integration Section -->
+          <div class="section" id="section-notion">
+            <div class="section-title">${t('notionSection', loc)}</div>
+            <div class="section-desc">${t('notionSectionDesc', loc)}</div>
+
+            <!-- Enable Toggle -->
+            <div class="toggle-row" style="border-bottom: 1px solid var(--border-subtle); margin-bottom: 12px;">
+              <div class="toggle-info">
+                <div class="toggle-label">${t('notionEnabledField', loc)}</div>
+                <div class="toggle-desc">${t('notionEnabledDesc', loc)}</div>
+              </div>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked=${settings.notionEnabled}
+                  onChange=${e => setSettings({ ...settings, notionEnabled: e.target.checked })}
+                  id="toggle-notion-enabled"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            ${settings.notionEnabled && html`
+              <div>
+                <div class="field">
+                  <label class="field-label" for="notion-token-input">${t('notionTokenField', loc)}</label>
+                  <input
+                    class="text-input"
+                    type="password"
+                    id="notion-token-input"
+                    placeholder="secret_..."
+                    value=${settings.notionToken}
+                    onInput=${e => setSettings({ ...settings, notionToken: e.target.value })}
+                  />
+                </div>
+                <div class="field">
+                  <label class="field-label" for="notion-db-input">${t('notionDbIdField', loc)}</label>
+                  <input
+                    class="text-input"
+                    type="text"
+                    id="notion-db-input"
+                    placeholder="e.g. 8c5b..."
+                    value=${settings.notionDbId}
+                    onInput=${e => setSettings({ ...settings, notionDbId: e.target.value })}
+                  />
+                </div>
+              </div>
+            `}
+          </div>
+
+          <!-- Experimental Features Section -->
+          <div class="section" id="section-experimental">
+            <div class="section-title">${t('experimentalFeaturesSection', loc)}</div>
+            <div class="section-desc">${t('experimentalFeaturesDesc', loc)}</div>
+
+            <!-- Deep Merge Toggle -->
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Deep merge manifest configuration overrides</div>
+                <div class="toggle-desc">Enable recursive merging for Vite build config objects.</div>
+              </div>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked=${settings.experimentalMerge}
+                  onChange=${e => setSettings({ ...settings, experimentalMerge: e.target.checked })}
+                  id="toggle-exp-merge"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Debug Logs Toggle -->
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Verbose debug logs</div>
+                <div class="toggle-desc">Output execution trace information directly to the service worker console.</div>
+              </div>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked=${settings.experimentalDebug}
+                  onChange=${e => setSettings({ ...settings, experimentalDebug: e.target.checked })}
+                  id="toggle-exp-debug"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Data Management -->
+          <div class="section" id="section-data">
+            <div class="section-title">${t('dataManagementSection', loc)}</div>
+            <div class="section-desc">${t('dataManagementDesc', loc)}</div>
+            <div class="btn-row">
+              <button class="btn" onClick=${handleExport} id="export-btn">
+                ${t('exportBtn', loc)}
+              </button>
+              <button class="btn" onClick=${handleImport} id="import-btn">
+                ${t('importBtn', loc)}
+              </button>
+              <input
+                class="file-input"
+                type="file"
+                id="import-file"
+                accept=".json"
+                onChange=${processImport}
+              />
+            </div>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="section danger-section" id="section-danger">
+            <div class="section-title">${t('dangerZoneSection', loc)}</div>
+            <div class="section-desc">${t('dangerZoneDesc', loc)}</div>
+            <button class="btn btn-danger" onClick=${handleClearAll} id="clear-all-btn">
+              ${t('clearAllBtn', loc)}
+            </button>
+          </div>
+
+          <!-- Keyboard Shortcuts Info -->
+          <div class="section" id="section-shortcuts">
+            <div class="section-title">${t('keyboardShortcutsSection', loc)}</div>
+            <div class="section-desc">${t('keyboardShortcutsDesc', loc)}</div>
+            <div class="toggle-row" style="border-bottom: none; padding-bottom: 0;">
+              <div class="toggle-info">
+                <div class="toggle-label">${t('captureCurrentChatField', loc)}</div>
+                <div class="toggle-desc">${t('captureCurrentChatDesc', loc)}</div>
+              </div>
+              <code style="
+                background: var(--bg-input);
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 11px;
+                color: var(--accent);
+                border: 1px solid var(--border-subtle);
+                white-space: nowrap;
+              ">Ctrl+Shift+S</code>
+            </div>
+          </div>
+        </div>
+      `}
 
       <!-- Save Button -->
-      <div style="margin-bottom: 20px;">
+      <div style="margin-top: 10px; margin-bottom: 30px;">
         <button class="btn btn-primary" onClick=${handleSave} id="save-settings-btn">
-          ${saved ? 'Saved!' : 'Save Settings'}
+          ${saved ? t('savedBtn', loc) : t('saveSettingsBtn', loc)}
         </button>
-      </div>
-
-      <!-- Data Management -->
-      <div class="section" id="section-data">
-        <div class="section-title">Data Management</div>
-        <div class="section-desc">Export your capsules for backup or import from a previous export.</div>
-        <div class="btn-row">
-          <button class="btn" onClick=${handleExport} id="export-btn">
-            Export All Capsules
-          </button>
-          <button class="btn" onClick=${handleImport} id="import-btn">
-            Import from JSON
-          </button>
-          <input
-            class="file-input"
-            type="file"
-            id="import-file"
-            accept=".json"
-            onChange=${processImport}
-          />
-        </div>
-      </div>
-
-      <!-- Danger Zone -->
-      <div class="section danger-section" id="section-danger">
-        <div class="section-title">Danger Zone</div>
-        <div class="section-desc">Irreversible actions. Proceed with caution.</div>
-        <button class="btn btn-danger" onClick=${handleClearAll} id="clear-all-btn">
-          Delete All Capsules
-        </button>
-      </div>
-
-      <!-- Keyboard Shortcuts Info -->
-      <div class="section" id="section-shortcuts">
-        <div class="section-title">Keyboard Shortcuts</div>
-        <div class="section-desc">Quick access shortcuts for Kairo.</div>
-        <div class="toggle-row" style="border-bottom: none;">
-          <div class="toggle-info">
-            <div class="toggle-label">Capture current chat</div>
-            <div class="toggle-desc">Works on any supported AI platform page.</div>
-          </div>
-          <code style="
-            background: var(--bg-input);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            color: var(--accent);
-            border: 1px solid var(--border-subtle);
-            white-space: nowrap;
-          ">Ctrl+Shift+S</code>
-        </div>
       </div>
 
       <!-- Version Footer -->
       <div class="version-footer">
-        Kairo v1.0.0 - Built for context that travels with you.
+        ${t('versionFooter', loc)}
       </div>
     </div>
 
