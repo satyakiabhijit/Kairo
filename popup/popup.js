@@ -120,6 +120,29 @@ function Popup() {
     });
   }, []);
 
+  // ─── Export all capsules as JSON ───────────────────────────
+  const handleExport = () => {
+    if (capsules.length === 0) {
+      showToast('No capsules to export');
+      return;
+    }
+    const data = JSON.stringify({
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      app: 'Kairo',
+      capsules,
+    }, null, 2);
+
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kairo-capsules-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${capsules.length} capsules`);
+  };
+
   // ─── Open options page ─────────────────────────────────────
   const openOptions = () => {
     chrome.runtime.openOptionsPage();
@@ -134,6 +157,7 @@ function Popup() {
         Kairo
       </h1>
       <div class="header-actions">
+        <button class="icon-btn" onClick=${handleExport} title="Export Capsules" id="kairo-export-btn"><i class="fa-solid fa-download" style="color: rgb(138, 152, 177);"></i></button>
         <button class="icon-btn" onClick=${openOptions} title="Settings" id="kairo-settings-btn"><i class="fa-solid fa-gear" style="color: rgb(138, 152, 177);"></i></button>
       </div>
     </div>
