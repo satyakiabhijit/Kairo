@@ -1,31 +1,35 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest a focused improvement for Kairo
 title: "[FEATURE] "
 labels: enhancement
 assignees: ''
 ---
 
-**Is your feature request related to a problem? Please describe.**
-<!--
-A clear and concise description of what the problem is. Ex: I'm always frustrated when [...]
--->
+**Problem or workflow**
+<!-- What user or developer workflow would this improve? -->
 
+**Affected area**
+- Capture button
+- Conversation extraction
+- Popup capsule browser
+- Options/settings
+- Import/export
+- Enrichment
+- Documentation
+- Other:
 
-**Describe the solution you'd like**
-<!--
-A clear and concise description of what you want to happen.
--->
+**Supported platform context**
+<!-- If this is platform-specific, note Claude, ChatGPT, Gemini, DeepSeek, Chrome, or Firefox. -->
 
+**Proposed solution**
+<!-- Describe the smallest useful change that would solve the problem. -->
 
-**Describe alternatives you've considered**
-<!--
-A clear and concise description of any alternative solutions or features you've considered.
--->
+**Alternatives considered**
+<!-- Mention any simpler or lower-risk alternatives. -->
 
+**Data and privacy considerations**
+<!-- Does this touch local storage, sync storage, API keys, or captured chat content? -->
 
 **Additional context**
-<!--
-Add any other context or screenshots about the feature request here.
--->
-
+<!-- Add screenshots, examples, or links if helpful. -->

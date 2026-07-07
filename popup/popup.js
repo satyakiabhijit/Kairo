@@ -63,6 +63,19 @@ function Popup() {
     setTimeout(() => setToastMsg(''), 2000);
   };
 
+  useEffect(() => {
+    if (!deleteTarget) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setDeleteTarget(null);
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [deleteTarget]);
+
   // ─── Copy to clipboard ─────────────────────────────────────
   const handleCopy = useCallback(async (capsule) => {
     try {
@@ -120,29 +133,6 @@ function Popup() {
     });
   }, []);
 
-  // ─── Export all capsules as JSON ───────────────────────────
-  const handleExport = () => {
-    if (capsules.length === 0) {
-      showToast('No capsules to export');
-      return;
-    }
-    const data = JSON.stringify({
-      version: '1.0.0',
-      exportedAt: new Date().toISOString(),
-      app: 'Kairo',
-      capsules,
-    }, null, 2);
-
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `kairo-capsules-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(`Exported ${capsules.length} capsules`);
-  };
-
   // ─── Open options page ─────────────────────────────────────
   const openOptions = () => {
     chrome.runtime.openOptionsPage();
@@ -157,8 +147,13 @@ function Popup() {
         Kairo
       </h1>
       <div class="header-actions">
-        <button class="icon-btn" onClick=${handleExport} title="Export Capsules" id="kairo-export-btn"><i class="fa-solid fa-download" style="color: rgb(138, 152, 177);"></i></button>
-        <button class="icon-btn" onClick=${openOptions} title="Settings" id="kairo-settings-btn"><i class="fa-solid fa-gear" style="color: rgb(138, 152, 177);"></i></button>
+        <button
+          class="icon-btn"
+          onClick=${openOptions}
+          title="Settings"
+          aria-label="Open Kairo settings"
+          id="kairo-settings-btn"
+        ><span aria-hidden="true">⚙</span></button>
       </div>
     </div>
 
@@ -179,6 +174,7 @@ function Popup() {
           onInput=${e => setQuery(e.target.value)}
           onKeyDown=${e => { if (e.key === 'Enter') e.preventDefault(); }}
           id="kairo-search"
+          aria-label="Search saved capsules"
         />
       </div>
     </div>
@@ -189,12 +185,14 @@ function Popup() {
         <button
           class="filter-chip ${!activePlatform ? 'active' : ''}"
           onClick=${() => setActivePlatform(null)}
+          aria-pressed=${!activePlatform}
         >All</button>
         ${platforms.map(p => html`
           <button
             key=${p}
             class="filter-chip ${activePlatform === p ? 'active' : ''}"
             onClick=${() => setActivePlatform(activePlatform === p ? null : p)}
+            aria-pressed=${activePlatform === p}
           >${platformName(p)}</button>
         `)}
       </div>
@@ -208,21 +206,22 @@ function Popup() {
             key=${f}
             class="filter-chip ${activeFolder === f ? 'active' : ''}"
             onClick=${() => setActiveFolder(activeFolder === f ? null : f)}
+            aria-pressed=${activeFolder === f}
           >Folder: ${f}</button>
         `)}
       </div>
     `}
 
     <!-- Stats Bar -->
-    <div class="stats-bar">
+    <div class="stats-bar" aria-live="polite">
       <span>${sorted.length} capsule${sorted.length !== 1 ? 's' : ''}${query || activePlatform || activeFolder ? ' found' : ''}</span>
       ${capsules.length > 0 && html`<span>${capsules.length} total</span>`}
     </div>
 
     <!-- Capsule List -->
-    <div class="capsule-list" id="kairo-capsule-list">
+    <div class="capsule-list" id="kairo-capsule-list" aria-busy=${loading}>
       ${loading && html`
-        <div class="empty-state">
+        <div class="empty-state" role="status">
           <div class="empty-icon">
             <svg class="kairo-spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:block; margin:0 auto;">
               <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
@@ -233,7 +232,7 @@ function Popup() {
       `}
 
       ${!loading && sorted.length === 0 && html`
-        <div class="empty-state">
+        <div class="empty-state" role="status">
           <div class="empty-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto;">
               <path d="M22 12h-6l-2 3h-4l-2-3H2"></path>
@@ -261,9 +260,16 @@ function Popup() {
     <!-- Delete Confirmation -->
     ${deleteTarget && html`
       <div class="confirm-overlay" onClick=${() => setDeleteTarget(null)}>
-        <div class="confirm-dialog" onClick=${e => e.stopPropagation()}>
-          <div class="confirm-title">Delete Capsule?</div>
-          <div class="confirm-text">This action cannot be undone. The capsule will be permanently removed.</div>
+        <div
+          class="confirm-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-dialog-title"
+          aria-describedby="delete-dialog-desc"
+          onClick=${e => e.stopPropagation()}
+        >
+          <div class="confirm-title" id="delete-dialog-title">Delete Capsule?</div>
+          <div class="confirm-text" id="delete-dialog-desc">This action cannot be undone. The capsule will be permanently removed.</div>
           <div class="confirm-actions">
             <button class="confirm-btn" onClick=${() => setDeleteTarget(null)}>Cancel</button>
             <button class="confirm-btn danger" onClick=${() => handleDelete(deleteTarget)}>Delete</button>
@@ -274,7 +280,7 @@ function Popup() {
 
     <!-- Toast -->
     ${toastMsg && html`
-      <div style="
+      <div role="status" aria-live="polite" style="
         position: fixed;
         bottom: 12px;
         left: 50%;
@@ -300,7 +306,7 @@ function CapsuleCard({ capsule, onCopy, onInject, onDelete }) {
   const summaryText = c.content?.summary || c.content?.rawSnippet || '';
 
   return html`
-    <div class="capsule-card" id="capsule-${c.id?.slice(0, 8)}">
+    <article class="capsule-card" id="capsule-${c.id?.slice(0, 8)}">
       <div class="card-header">
         <div class="card-title">${c.title || 'Untitled Capsule'}</div>
         ${c.meta?.pinned && html`<span class="card-pin">Pinned</span>`}
@@ -327,17 +333,17 @@ function CapsuleCard({ capsule, onCopy, onInject, onDelete }) {
       `}
 
       <div class="card-actions">
-        <button class="card-btn" onClick=${() => onCopy(c)} title="Copy to clipboard">
+        <button class="card-btn" onClick=${() => onCopy(c)} title="Copy to clipboard" aria-label=${`Copy ${c.title || 'untitled capsule'} to clipboard`}>
           Copy
         </button>
-        <button class="card-btn inject" onClick=${() => onInject(c)} title="Inject into chat">
+        <button class="card-btn inject" onClick=${() => onInject(c)} title="Inject into chat" aria-label=${`Inject ${c.title || 'untitled capsule'} into the active chat`}>
           Inject
         </button>
-        <button class="card-btn delete" onClick=${onDelete} title="Delete capsule">
-          <i class="fa-solid fa-trash" style="color: rgb(147, 162, 187);"></i>
+        <button class="card-btn delete" onClick=${onDelete} title="Delete capsule" aria-label=${`Delete ${c.title || 'untitled capsule'}`}>
+          <span aria-hidden="true">Delete</span>
         </button>
       </div>
-    </div>
+    </article>
   `;
 }
 
