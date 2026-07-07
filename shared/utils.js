@@ -5,15 +5,25 @@
  * @param {number} timestamp
  * @returns {string}
  */
-export function timeAgo(timestamp) {
+export function timeAgo(timestamp, locale = 'en') {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  const isEs = locale === 'es';
 
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 60) return isEs ? 'hace un momento' : 'just now';
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60);
+    return isEs ? `hace ${mins}m` : `${mins}m ago`;
+  }
+  if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600);
+    return isEs ? `hace ${hours}h` : `${hours}h ago`;
+  }
+  if (seconds < 604800) {
+    const days = Math.floor(seconds / 86400);
+    return isEs ? `hace ${days}d` : `${days}d ago`;
+  }
 
-  return new Date(timestamp).toLocaleDateString('en-US', {
+  return new Date(timestamp).toLocaleDateString(isEs ? 'es-ES' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
