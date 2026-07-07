@@ -12,6 +12,7 @@
   ],
   "host_permissions": [
     "https://claude.ai/*",
+    "https://chat.openai.com/*",
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
     "https://chat.deepseek.com/*",
@@ -26,6 +27,7 @@
     {
       "matches": [
         "https://claude.ai/*",
+        "https://chat.openai.com/*",
         "https://chatgpt.com/*",
         "https://gemini.google.com/*",
         "https://chat.deepseek.com/*"

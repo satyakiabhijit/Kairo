@@ -1,73 +1,45 @@
-## 📝 Pull Request Summary
+## Summary
+<!-- Describe what changed and why. Keep this focused on one problem. -->
 
-<!-- Replace this line with a brief, clear description of what this PR does -->
+## Related Issue
+Closes #
 
----
+## Type of Change
+- [ ] Bug fix
+- [ ] Feature enhancement
+- [ ] Accessibility improvement
+- [ ] Performance improvement
+- [ ] Security or privacy improvement
+- [ ] Documentation update
+- [ ] Developer experience improvement
 
-## 🔗 Related Issue
+## Affected Extension Area
+- [ ] Background/service worker
+- [ ] Content script or extractor
+- [ ] Popup UI
+- [ ] Options/settings UI
+- [ ] Shared storage, capsule, or messaging logic
+- [ ] Import/export
+- [ ] Documentation or templates
 
-Closes #<!-- issue number -->
-
----
-
-## 🔄 Type of Change
-
-<!-- Check all that apply -->
-
-- [ ] 🐛 Bug fix (non-breaking change that fixes an issue)
-- [ ] ✨ New feature (non-breaking change that adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to change)
-- [ ] 📚 Documentation update
-- [ ] ♿ Accessibility improvement
-- [ ] ⚡ Performance improvement
-- [ ] 🔒 Security fix
-- [ ] 🔧 CI/Tooling change
-
----
-
-## 📋 Changes Made
-
-<!-- List the specific changes made in this PR -->
-
+## Changes Made
 - 
 - 
 - 
 
----
+## Testing
+- [ ] Ran `npm run build`
+- [ ] Ran `npm run build:firefox` when cross-browser behavior changed
+- [ ] Tested the affected UI in a browser
+- [ ] Checked DevTools console for new errors or warnings
+- [ ] Verified keyboard-only behavior for UI changes
+- [ ] Verified no secrets, API keys, or private chat content are committed
 
-## 🧪 Testing
+## Screenshots or Recording
+<!-- Add before/after media for UI changes. Write "Not applicable" for non-visual changes. -->
 
-<!-- Describe how you tested your changes -->
+## Data and Privacy Impact
+<!-- Note whether this touches capsules, imports/exports, local storage, sync storage, API keys, or enrichment requests. -->
 
-- [ ] Opened the affected pages in a browser — no visual regressions
-- [ ] Opened browser DevTools console — no new errors or warnings
-- [ ] Tested on mobile viewport (DevTools responsive mode at 375px width)
-- [ ] Verified accessibility with keyboard-only navigation
-- [ ] Tested on multiple browsers (Chrome, Firefox) if applicable
-
----
-
-## 📸 Screenshots
-
-<!-- For UI changes, add before/after screenshots. Delete if not applicable. -->
-
-| Before | After |
-|--------|-------|
-| | |
-
----
-
-## ⚠️ Notes for Reviewers
-
-<!-- Anything specific reviewers should pay attention to -->
-
----
-
-## ✅ Contributor Checklist
-
-- [ ] My branch is up-to-date with `main`
-- [ ] I have tested my changes locally
-- [ ] My changes do not introduce console errors or warnings
-- [ ] I have not included unrelated changes
-- [ ] No secrets, API keys, or credentials are committed
-- [ ] My commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/) format
+## Reviewer Notes
+<!-- Call out migration concerns, browser differences, or specific files worth close review. -->

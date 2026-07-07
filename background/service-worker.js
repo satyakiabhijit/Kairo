@@ -3,6 +3,7 @@
 
 import { saveCapsule, getCapsules, deleteCapsule, updateCapsule, getSettings, saveSettings, clearAllCapsules } from '../shared/storage.js';
 import { validateCapsule } from '../shared/capsule.js';
+import { getSupportedMatchPatterns } from '../shared/platforms.js';
 import { enrichCapsule } from './enricher.js';
 
 // ─── Message Listener ─────────────────────────────────────────────
@@ -434,12 +435,7 @@ chrome.runtime.onInstalled.addListener(() => {
     id: 'kairo-capture',
     title: 'Capture with Kairo',
     contexts: ['page'],
-    documentUrlPatterns: [
-      'https://claude.ai/*',
-      'https://chatgpt.com/*',
-      'https://gemini.google.com/*',
-      'https://chat.deepseek.com/*',
-    ],
+    documentUrlPatterns: getSupportedMatchPatterns(),
   });
 });
 

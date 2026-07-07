@@ -1,4 +1,5 @@
 // shared/storage.js — chrome.storage.local wrapper for Capsule persistence
+import { DEFAULT_SETTINGS, normalizeSettings } from './settings.js';
 
 const STORAGE_KEY = 'kairo_capsules';
 const SETTINGS_KEY = 'kairo_settings';
@@ -113,34 +114,10 @@ export async function updateCapsule(id, updates) {
 export async function getSettings() {
   try {
     const res = await chrome.storage.sync.get(SETTINGS_KEY);
-    return res[SETTINGS_KEY] || {
-      autoEnrich: false,
-      showFloatingButton: true,
-      apiKey: '',
-      locale: 'en',
-      theme: 'dark',
-      autoTag: false,
-      notionEnabled: false,
-      notionToken: '',
-      notionDbId: '',
-      experimentalMerge: false,
-      experimentalDebug: false,
-    };
+    return normalizeSettings({ ...DEFAULT_SETTINGS, ...(res[SETTINGS_KEY] || {}) });
   } catch (err) {
     console.error('[Kairo] Settings read error:', err);
-    return {
-      autoEnrich: false,
-      showFloatingButton: true,
-      apiKey: '',
-      locale: 'en',
-      theme: 'dark',
-      autoTag: false,
-      notionEnabled: false,
-      notionToken: '',
-      notionDbId: '',
-      experimentalMerge: false,
-      experimentalDebug: false,
-    };
+    return DEFAULT_SETTINGS;
   }
 }
 
@@ -150,7 +127,7 @@ export async function getSettings() {
  */
 export async function saveSettings(settings) {
   try {
-    await chrome.storage.sync.set({ [SETTINGS_KEY]: settings });
+    await chrome.storage.sync.set({ [SETTINGS_KEY]: normalizeSettings(settings) });
     return { success: true };
   } catch (err) {
     console.error('[Kairo] Settings write error:', err);
