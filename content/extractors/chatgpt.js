@@ -84,22 +84,21 @@ export default {
 
     // Strategy 1: data-message-author-role — scoped to thread
     turns = [...root.querySelectorAll('[data-message-author-role]')];
-    if (turns.length) {
-      // Filter out anything that might be from nav/sidebar (no meaningful text)
-      const filtered = turns.filter(el => el.innerText.trim().length > 0);
-      console.log(`[Kairo Extractor] ChatGPT: ${filtered.length} turns (data-message-author-role, thread-scoped)`);
-      return filtered.map(el => ({
+    const filteredTurns = turns.filter(el => el.innerText.trim().length > 0);
+    if (filteredTurns.length) {
+      console.log(`[Kairo Extractor] ChatGPT: ${filteredTurns.length} turns (data-message-author-role, thread-scoped)`);
+      return filteredTurns.map(el => ({
         role: el.dataset.messageAuthorRole === 'user' ? 'user' : 'assistant',
         text: el.innerText.trim(),
       }));
     }
 
-    // Strategy 2: article[data-testid="conversation-turn-*"]
-    turns = [...root.querySelectorAll('article[data-testid^="conversation-turn"]')];
+    // Strategy 2: [data-testid="conversation-turn-*"]
+    turns = [...root.querySelectorAll('[data-testid^="conversation-turn"]')];
     if (turns.length) {
-      console.log(`[Kairo Extractor] ChatGPT: ${turns.length} turns (article[data-testid])`);
+      console.log(`[Kairo Extractor] ChatGPT: ${turns.length} turns (data-testid)`);
       return turns.map(el => ({
-        role: el.querySelector('[data-message-author-role="user"]') !== null ? 'user' : 'assistant',
+        role: el.querySelector('[data-message-author-role="user"]') !== null ? 'user' : detectRole(el),
         text: el.innerText.trim(),
       })).filter(t => t.text.length > 0);
     }
