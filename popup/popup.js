@@ -182,6 +182,21 @@ function Popup() {
     showToast(t('toastExportSuccess', loc, { count: capsules.length }));
   };
 
+  // ─── Export single capsule as JSON ─────────────────────────
+  const handleExportSingle = (c) => {
+    // Sanitize title to prevent filename encoding failures
+    const sanitizedTitle = (c.title || 'capsule').replace(/[\/\\?%*:|"<>\s]+/g, '_').toLowerCase();
+    const data = JSON.stringify(c, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kairo-capsule-${sanitizedTitle}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Capsule exported');
+  };
+
   // ─── Open options page ─────────────────────────────────────
   const openOptions = () => {
     chrome.runtime.openOptionsPage();
@@ -310,6 +325,7 @@ function Popup() {
           onInject=${handleInject}
           onNotion=${handleNotionExport}
           onPin=${handlePin}
+          onExportSingle=${handleExportSingle}
           onDelete=${() => setDeleteTarget(c.id)}
         />
       `)}
@@ -352,7 +368,7 @@ function Popup() {
 }
 
 // ─── Capsule Card Component ─────────────────────────────────────
-function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotion, onPin, onDelete }) {
+function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotion, onPin, onExportSingle, onDelete }) {
   const c = capsule;
   const summaryText = c.content?.summary || c.content?.rawSnippet || '';
 
@@ -414,6 +430,9 @@ function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotio
             ${t('notionBtn', locale)}
           </button>
         `}
+        <button class="card-btn" onClick=${() => onExportSingle(c)} title="Download JSON" style="padding: 4px 6px;">
+          <i class="fa-solid fa-download" style="color: rgb(147, 162, 187);"></i>
+        </button>
         <button class="card-btn delete" onClick=${onDelete} title=${t('btnDelete', locale)}>
           <i class="fa-solid fa-trash" style="color: rgb(147, 162, 187);"></i>
         </button>
