@@ -8,6 +8,9 @@ import { buildInjectionText } from '../shared/inject.js';
 
 // ─── Main Popup Component ───────────────────────────────────────
 function Popup() {
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [capsules, setCapsules] = useState([]);
   const [query, setQuery] = useState('');
   const [activeFolder, setActiveFolder] = useState(null);
@@ -133,12 +136,64 @@ function Popup() {
     });
   }, []);
 
+  const toggleSelectMode = () => {
+  setSelectMode(prev => !prev);
+  setSelectedIds(new Set());
+};
+
+const toggleSelected = useCallback((id) => {
+  setSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+}, []);
+
+const selectAllVisible = () => {
+  setSelectedIds(new Set(sorted.map(c => c.id)));
+};
+
+const clearSelection = () => setSelectedIds(new Set());
+
+const handleBulkDelete = useCallback(() => {
+  const ids = [...selectedIds];
+  chrome.runtime.sendMessage({ type: 'DELETE_CAPSULES', ids }, (res) => {
+    if (chrome.runtime.lastError) {
+      console.error('[Kairo Popup] DELETE_CAPSULES failed:', chrome.runtime.lastError.message);
+      showToast('Bulk delete failed');
+      setBulkDeleteConfirm(false);
+      return;
+    }
+    if (res?.success) {
+      setCapsules(prev => prev.filter(c => !ids.includes(c.id)));
+      showToast(`${ids.length} capsule${ids.length !== 1 ? 's' : ''} deleted`);
+      setSelectedIds(new Set());
+    } else {
+      showToast('Bulk delete failed');
+    }
+    setBulkDeleteConfirm(false);
+  });
+}, [selectedIds]);
+
+const handleBulkExport = useCallback(() => {
+  const toExport = capsules.filter(c => selectedIds.has(c.id));
+  const blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kairo-export-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${toExport.length} capsule${toExport.length !== 1 ? 's' : ''}`);
+}, [capsules, selectedIds]);
+
   // ─── Open options page ─────────────────────────────────────
   const openOptions = () => {
     chrome.runtime.openOptionsPage();
   };
 
-  // ─── Render ─────────────────────────────────────────────────
+ // ─── Render ─────────────────────────────────────────────────
   return html`
     <!-- Header -->
     <div class="kairo-header">
@@ -154,6 +209,14 @@ function Popup() {
           aria-label="Open Kairo settings"
           id="kairo-settings-btn"
         ><span aria-hidden="true">⚙</span></button>
+        <button
+          class="icon-btn"
+          onClick=${toggleSelectMode}
+          title=${selectMode ? 'Exit select mode' : 'Select capsules'}
+          aria-label=${selectMode ? 'Exit select mode' : 'Select capsules'}
+          aria-pressed=${selectMode}
+          ><span aria-hidden="true">${selectMode ? '✕' : '☑'}</span>
+        </button>
       </div>
     </div>
 
@@ -218,6 +281,17 @@ function Popup() {
       ${capsules.length > 0 && html`<span>${capsules.length} total</span>`}
     </div>
 
+    <!-- Bulk Action Bar -->
+    ${selectMode && html`
+      <div class="bulk-action-bar">
+        <button class="card-btn" onClick=${selectAllVisible}>Select all (${sorted.length})</button>
+        <button class="card-btn" onClick=${clearSelection}>Clear</button>
+        <span style="flex:1"></span>
+        <button class="card-btn" disabled=${selectedIds.size === 0} onClick=${handleBulkExport}>Export (${selectedIds.size})</button>
+        <button class="card-btn delete-solid" disabled=${selectedIds.size === 0} onClick=${() => setBulkDeleteConfirm(true)}>Delete (${selectedIds.size})</button>
+      </div>
+    `}
+
     <!-- Capsule List -->
     <div class="capsule-list" id="kairo-capsule-list" aria-busy=${loading}>
       ${loading && html`
@@ -253,6 +327,9 @@ function Popup() {
           onCopy=${handleCopy}
           onInject=${handleInject}
           onDelete=${() => setDeleteTarget(c.id)}
+          selectMode=${selectMode}
+          selected=${selectedIds.has(c.id)}
+          onToggleSelect=${() => toggleSelected(c.id)}
         />
       `)}
     </div>
@@ -273,6 +350,20 @@ function Popup() {
           <div class="confirm-actions">
             <button class="confirm-btn" onClick=${() => setDeleteTarget(null)}>Cancel</button>
             <button class="confirm-btn danger" onClick=${() => handleDelete(deleteTarget)}>Delete</button>
+          </div>
+        </div>
+      </div>
+    `}
+
+    <!-- Bulk Delete Confirmation -->
+    ${bulkDeleteConfirm && html`
+      <div class="confirm-overlay" onClick=${() => setBulkDeleteConfirm(false)}>
+        <div class="confirm-dialog" role="dialog" aria-modal="true" onClick=${e => e.stopPropagation()}>
+          <div class="confirm-title">Delete ${selectedIds.size} capsule${selectedIds.size !== 1 ? 's' : ''}?</div>
+          <div class="confirm-text">This action cannot be undone.</div>
+          <div class="confirm-actions">
+            <button class="confirm-btn" onClick=${() => setBulkDeleteConfirm(false)}>Cancel</button>
+            <button class="confirm-btn danger" onClick=${handleBulkDelete}>Delete</button>
           </div>
         </div>
       </div>
@@ -301,13 +392,22 @@ function Popup() {
 }
 
 // ─── Capsule Card Component ─────────────────────────────────────
-function CapsuleCard({ capsule, onCopy, onInject, onDelete }) {
+function CapsuleCard({ capsule, onCopy, onInject, onDelete, selectMode, selected, onToggleSelect }) {
   const c = capsule;
   const summaryText = c.content?.summary || c.content?.rawSnippet || '';
 
   return html`
-    <article class="capsule-card" id="capsule-${c.id?.slice(0, 8)}">
+    <article class="capsule-card ${selected ? 'card-selected' : ''}" id="capsule-${c.id?.slice(0, 8)}">
       <div class="card-header">
+        ${selectMode && html`
+          <input
+            type="checkbox"
+            class="card-checkbox"
+            checked=${selected}
+            onChange=${onToggleSelect}
+            aria-label=${`Select ${c.title || 'untitled capsule'}`}
+          />
+        `}
         <div class="card-title">${c.title || 'Untitled Capsule'}</div>
         ${c.meta?.pinned && html`<span class="card-pin">Pinned</span>`}
       </div>
@@ -349,3 +449,4 @@ function CapsuleCard({ capsule, onCopy, onInject, onDelete }) {
 
 // ─── Mount ──────────────────────────────────────────────────────
 render(html`<${Popup} />`, document.getElementById('root'));
+

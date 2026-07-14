@@ -86,6 +86,25 @@ export async function deleteCapsule(id) {
 }
 
 /**
+ * Delete multiple capsules by their IDs in a single write.
+ * @param {string[]} ids
+ */
+export async function deleteCapsules(ids) {
+  return enqueueMutation(async () => {
+    try {
+      const idSet = new Set(ids);
+      const existing = await getCapsules();
+      const filtered = existing.filter(c => !idSet.has(c.id));
+      await chrome.storage.local.set({ [STORAGE_KEY]: filtered });
+      return { success: true, deletedCount: existing.length - filtered.length };
+    } catch (err) {
+      console.error('[Kairo] Bulk delete error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+}
+
+/**
  * Partially update a capsule by its ID.
  * @param {string} id
  * @param {Object} updates - Fields to merge into the capsule

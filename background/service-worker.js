@@ -1,7 +1,7 @@
 // background/service-worker.js — Central hub for Kairo extension
 // Handles: messaging, storage ops, enrichment, keyboard shortcuts, context menus
 
-import { saveCapsule, getCapsules, deleteCapsule, updateCapsule, getSettings, saveSettings, clearAllCapsules } from '../shared/storage.js';
+import { saveCapsule, getCapsules, deleteCapsule, deleteCapsules, updateCapsule, getSettings, saveSettings, clearAllCapsules } from '../shared/storage.js';
 import { validateCapsule } from '../shared/capsule.js';
 import { getSupportedMatchPatterns } from '../shared/platforms.js';
 import { enrichCapsule } from './enricher.js';
@@ -32,9 +32,15 @@ const MESSAGE_HANDLERS = {
     return getCapsules();
   },
 
+
   async DELETE_CAPSULE(msg) {
     return deleteCapsule(msg.id);
   },
+
+  async DELETE_CAPSULES(msg) {
+    return deleteCapsules(msg.ids);
+  },
+  
 
   async UPDATE_CAPSULE(msg) {
     return updateCapsule(msg.id, msg.updates);
