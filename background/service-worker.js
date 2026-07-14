@@ -441,6 +441,10 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'kairo-capture' && tab?.id) {
+    if (!tab.url || tab.url.startsWith('chrome:') || tab.url.startsWith('file:') || tab.url.startsWith('about:') || tab.url.startsWith('edge:')) {
+      console.warn('[Kairo SW] Context menu capture skipped: unsupported URL protocol', tab.url);
+      return;
+    }
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => window.__kairoTriggerCapture?.(),
