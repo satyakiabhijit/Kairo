@@ -378,9 +378,9 @@ function trackInputArea() {
         left = rect.right + 162;
         top = rect.bottom - 32;
       } else if (location.hostname.includes('deepseek.com')) {
-        // DeepSeek-specific position: lift it up to align with the vertical center of the card
-        left = rect.right + 16;
-        top = rect.bottom - 58;
+        // DeepSeek-specific position: push it outside on the right and offset upwards to not overlay send controls
+        left = rect.right + 76;
+        top = rect.bottom - 48;
       } else {
         // DeepSeek, etc.
         left = rect.right + 12;
