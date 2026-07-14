@@ -20,6 +20,19 @@ function enqueueMutation(mutator) {
   return result;
 }
 
+const SYNC_PINNED_KEY = 'kairo_pinned_capsules';
+
+async function syncLocalPinnedToSync() {
+  try {
+    const res = await chrome.storage.local.get(STORAGE_KEY);
+    const capsules = res[STORAGE_KEY] || [];
+    const pinned = capsules.filter(c => c.meta?.pinned);
+    await chrome.storage.sync.set({ [SYNC_PINNED_KEY]: pinned });
+  } catch (err) {
+    console.error('[Kairo Sync] Failed to sync pinned capsules:', err);
+  }
+}
+
 // Read-modify-write upsert. NOT locked on its own — callers must invoke it from
 // within enqueueMutation so the read observes the previous mutation's write.
 async function upsertCapsuleUnlocked(capsule) {
@@ -33,6 +46,7 @@ async function upsertCapsuleUnlocked(capsule) {
   }
 
   await chrome.storage.local.set({ [STORAGE_KEY]: existing });
+  await syncLocalPinnedToSync();
 }
 
 /**
@@ -59,8 +73,32 @@ export async function saveCapsule(capsule) {
  */
 export async function getCapsules() {
   try {
-    const res = await chrome.storage.local.get(STORAGE_KEY);
-    return res[STORAGE_KEY] || [];
+    const localRes = await chrome.storage.local.get(STORAGE_KEY);
+    let localCaps = localRes[STORAGE_KEY] || [];
+
+    const syncRes = await chrome.storage.sync.get(SYNC_PINNED_KEY);
+    const syncedPinned = syncRes[SYNC_PINNED_KEY] || [];
+
+    let modified = false;
+    syncedPinned.forEach(syncCap => {
+      const idx = localCaps.findIndex(c => c.id === syncCap.id);
+      if (idx === -1) {
+        localCaps.unshift(syncCap);
+        modified = true;
+      } else {
+        const localCap = localCaps[idx];
+        if (!localCap.meta?.pinned || (syncCap.updatedAt || 0) > (localCap.updatedAt || 0)) {
+          localCaps[idx] = { ...localCap, ...syncCap };
+          modified = true;
+        }
+      }
+    });
+
+    if (modified) {
+      await chrome.storage.local.set({ [STORAGE_KEY]: localCaps });
+    }
+
+    return localCaps;
   } catch (err) {
     console.error('[Kairo] Storage read error:', err);
     return [];
@@ -77,6 +115,7 @@ export async function deleteCapsule(id) {
       const existing = await getCapsules();
       const filtered = existing.filter(c => c.id !== id);
       await chrome.storage.local.set({ [STORAGE_KEY]: filtered });
+      await syncLocalPinnedToSync();
       return { success: true };
     } catch (err) {
       console.error('[Kairo] Delete error:', err);
