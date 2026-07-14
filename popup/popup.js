@@ -21,6 +21,7 @@ function Popup() {
     theme: 'dark',
     notionEnabled: false,
   });
+  const [activeDateFilter, setActiveDateFilter] = useState('all');
 
   // Load settings + capsules on mount
   useEffect(() => {
@@ -55,7 +56,18 @@ function Popup() {
       (c.content?.keyDecisions || []).some(kd => kd.toLowerCase().includes(q));
     const matchFolder = activeFolder ? c.meta?.folder === activeFolder : true;
     const matchPlatform = activePlatform ? c.source === activePlatform : true;
-    return matchQuery && matchFolder && matchPlatform;
+
+    const matchDate = (() => {
+      if (activeDateFilter === 'all') return true;
+      const ageMs = Date.now() - (c.capturedAt || 0);
+      if (activeDateFilter === 'today') return ageMs < 24 * 60 * 60 * 1000;
+      if (activeDateFilter === 'yesterday') return ageMs >= 24 * 60 * 60 * 1000 && ageMs < 48 * 60 * 60 * 1000;
+      if (activeDateFilter === 'week') return ageMs < 7 * 24 * 60 * 60 * 1000;
+      if (activeDateFilter === 'month') return ageMs < 30 * 24 * 60 * 60 * 1000;
+      return true;
+    })();
+
+    return matchQuery && matchFolder && matchPlatform && matchDate;
   });
 
   // Sort: pinned first, then by capturedAt desc
@@ -216,22 +228,30 @@ function Popup() {
       </div>
     </div>
 
-    <!-- Platform Filters -->
-    ${platforms.length > 0 && html`
-      <div class="filters">
+    <!-- Date Range & Platform Filters -->
+    <div style="display: flex; gap: 8px; margin: 0 16px 8px 16px; align-items: center; flex-wrap: wrap;">
+      <select 
+        value=${activeDateFilter} 
+        onChange=${e => setActiveDateFilter(e.target.value)}
+        style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 11px; font-weight: 500; cursor: pointer;"
+        id="date-filter-select"
+      >
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+      </select>
+
+      ${platforms.length > 0 && platforms.map(p => html`
         <button
-          class="filter-chip ${!activePlatform ? 'active' : ''}"
-          onClick=${() => setActivePlatform(null)}
-        >${t('filterAll', loc)}</button>
-        ${platforms.map(p => html`
-          <button
-            key=${p}
-            class="filter-chip ${activePlatform === p ? 'active' : ''}"
-            onClick=${() => setActivePlatform(activePlatform === p ? null : p)}
-          >${platformName(p)}</button>
-        `)}
-      </div>
-    `}
+          key=${p}
+          class="filter-chip ${activePlatform === p ? 'active' : ''}"
+          onClick=${() => setActivePlatform(activePlatform === p ? null : p)}
+          style="padding: 4px 8px; font-size: 11px;"
+        >${platformName(p)}</button>
+      `)}
+    </div>
 
     <!-- Folder Filters -->
     ${folders.length > 0 && html`
