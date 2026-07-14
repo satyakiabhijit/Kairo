@@ -365,8 +365,15 @@ function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotio
   const turnsText = turnCount === 1 ? t('turnBadge', locale) : t('turnsBadge', locale, { count: turnCount });
   const wordsText = wordCount === 1 ? t('wordBadge', locale) : t('wordsBadge', locale, { count: wordCount });
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onCopy(c);
+    }
+  };
+
   return html`
-    <div class="capsule-card" id="capsule-${c.id?.slice(0, 8)}">
+    <div class="capsule-card" id="capsule-${c.id?.slice(0, 8)}" tabindex="0" onKeyDown=${handleKeyDown}>
       <div class="card-header">
         <div class="card-title">${c.title || t('untitledCapsule', locale)}</div>
         <button class="icon-btn pin-btn" onClick=${() => onPin(c)} title=${c.meta?.pinned ? 'Unpin' : 'Pin'} style="border:none; background:transparent; cursor:pointer; padding: 2px 6px;">
