@@ -5,6 +5,7 @@ import { injectButton, promptCapsuleName, registerCaptureTrigger } from './injec
 import { createCapsule } from '../shared/capsule.js';
 
 (async function init() {
+  if (window !== window.top) return;
   try {
     const extractor = getExtractor(location.hostname);
 

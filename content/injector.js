@@ -23,7 +23,10 @@ const BUTTON_SIZE = 32;
 const MENU_WIDTH = 250;
 
 export function injectButton(onCapture) {
-  if (document.getElementById('kairo-container')) return;
+  const existing = document.getElementById('kairo-container');
+  if (existing) {
+    existing.remove();
+  }
 
   // Create a container for the button and menu
   const container = document.createElement('div');
