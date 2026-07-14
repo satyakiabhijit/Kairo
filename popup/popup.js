@@ -60,7 +60,7 @@ function Popup() {
 
   const showToast = (msg) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 2000);
+    setTimeout(() => setToastMsg(''), 4000);
   };
 
   useEffect(() => {
@@ -280,7 +280,7 @@ function Popup() {
 
     <!-- Toast -->
     ${toastMsg && html`
-      <div role="status" aria-live="polite" style="
+      <div role="alert" aria-live="polite" style="
         position: fixed;
         bottom: 12px;
         left: 50%;

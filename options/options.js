@@ -37,7 +37,7 @@ function OptionsPage() {
 
   const showToast = (msg) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 3000);
+    setTimeout(() => setToastMsg(''), 4000);
   };
 
   // Save settings
@@ -332,7 +332,7 @@ function OptionsPage() {
     </div>
 
     <!-- Toast -->
-    ${toastMsg && html`<div class="toast">${toastMsg}</div>`}
+    ${toastMsg && html`<div class="toast" role="alert" aria-live="polite">${toastMsg}</div>`}
   `;
 }
 
