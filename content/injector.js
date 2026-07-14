@@ -4,6 +4,19 @@ import { buildInjectionText, insertTextIntoEditor } from '../shared/inject.js';
 
 let buttonWrapper = null;
 let currentTextarea = null;
+let settings = {};
+
+chrome.storage.sync.get('kairo_settings', (res) => {
+  if (res && res.kairo_settings) {
+    settings = res.kairo_settings;
+  }
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.kairo_settings) {
+    settings = changes.kairo_settings.newValue || {};
+  }
+});
 
 const VIEWPORT_MARGIN = 12;
 const BUTTON_SIZE = 32;
@@ -201,7 +214,7 @@ export function injectButton(onCapture) {
         item.addEventListener('mouseleave', () => item.style.background = '#2a2a2a');
 
         item.addEventListener('dragstart', (e) => {
-          e.dataTransfer.setData('text/plain', buildInjectionText(capsule));
+          e.dataTransfer.setData('text/plain', buildInjectionText(capsule, settings?.injectionTemplate));
           item.style.opacity = '0.5';
           modal.style.opacity = '0.3';
         });
@@ -212,7 +225,7 @@ export function injectButton(onCapture) {
         });
 
         item.addEventListener('click', () => {
-          injectText(buildInjectionText(capsule) || 'No content found.');
+          injectText(buildInjectionText(capsule, settings?.injectionTemplate) || 'No content found.');
           modal.style.display = 'none';
         });
 

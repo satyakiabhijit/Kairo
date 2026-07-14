@@ -11,13 +11,26 @@
  * @param {Object} capsule
  * @returns {string}
  */
-export function buildInjectionText(capsule) {
+export function buildInjectionText(capsule, template) {
   const content = (capsule && capsule.content) || {};
 
   if (content.summary) {
     const goals = (content.goals || []).join(', ');
     const stack = (content.stack || []).join(', ');
     const keyDecisions = (content.keyDecisions || []).join(', ');
+    const constraints = (content.constraints || []).join(', ');
+
+    if (template && template.trim()) {
+      let text = template;
+      text = text.replace(/{title}/g, capsule.title || 'Untitled');
+      text = text.replace(/{summary}/g, content.summary || '');
+      text = text.replace(/{goals}/g, goals || '');
+      text = text.replace(/{stack}/g, stack || '');
+      text = text.replace(/{keyDecisions}/g, keyDecisions || '');
+      text = text.replace(/{constraints}/g, constraints || '');
+      return text;
+    }
+
     return `[Context from Kairo]\n\n${content.summary}\n\nGoals: ${goals}\n\nStack: ${stack}\n\nKey Decisions: ${keyDecisions}`;
   }
 
