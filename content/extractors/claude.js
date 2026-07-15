@@ -1,6 +1,8 @@
 // content/extractors/claude.js — Claude.ai DOM extractor
 // Selectors verified: May 2026 — review every 4-6 weeks
 
+import { getSafeText } from '../../shared/utils.js';
+
 /**
  * Best-effort per-element role detection for the fallback strategies, replacing
  * blind positional (i % 2) alternation. Inspects the element (and, for explicit
@@ -67,7 +69,7 @@ export default {
       console.log(`[Kairo Extractor] Claude: ${turns.length} turns (data-testid)`);
       return turns.map(el => ({
         role: el.dataset.testid === 'human-turn' ? 'user' : 'assistant',
-        text: el.innerText.trim(),
+        text: getSafeText(el),
       }));
     }
 
@@ -77,7 +79,7 @@ export default {
       console.log(`[Kairo Extractor] Claude: ${turns.length} turns (message wrappers)`);
       return turns.map(el => ({
         role: (el.classList.contains('font-user-message') || el.querySelector('[data-testid="human-turn"]')) ? 'user' : 'assistant',
-        text: el.innerText.trim(),
+        text: getSafeText(el),
       }));
     }
 
@@ -87,7 +89,7 @@ export default {
       console.log(`[Kairo Extractor] Claude: ${turns.length} turns (data-role)`);
       return turns.map(el => ({
         role: el.dataset.role === 'human' || el.dataset.role === 'user' ? 'user' : 'assistant',
-        text: el.innerText.trim(),
+        text: getSafeText(el),
       }));
     }
 
@@ -100,25 +102,25 @@ export default {
         console.log(`[Kairo Extractor] Claude: ${turns.length} turns (class pattern match)`);
         return turns.map(el => ({
           role: detectRole(el),
-          text: el.innerText.trim(),
+          text: getSafeText(el),
         })).filter(t => t.text.length > 0);
       }
 
       // Absolute last resort: grab all substantial text blocks from the conversation area
       const allDivs = [...conversationArea.querySelectorAll(':scope > div > div')];
-      const textBlocks = allDivs.filter(el => el.innerText.trim().length > 20);
+      const textBlocks = allDivs.filter(el => getSafeText(el).length > 20);
       if (textBlocks.length >= 2) {
         console.log(`[Kairo Extractor] Claude: ${textBlocks.length} blocks (last resort)`);
         return textBlocks.map(el => ({
           role: detectRole(el),
-          text: el.innerText.trim(),
+          text: getSafeText(el),
         }));
       }
     }
 
     // Final fallback: grab everything visible in the page
     console.warn('[Kairo Extractor] Claude: using full-page text fallback');
-    const bodyText = document.body.innerText.trim();
+    const bodyText = getSafeText(document.body);
     if (bodyText.length > 50) {
       return [{ role: 'user', text: bodyText.slice(0, 8000) }];
     }

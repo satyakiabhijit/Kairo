@@ -7,7 +7,6 @@
     "dev": "cross-env BROWSER=chrome vite build --watch --mode development",
     "dev:chrome": "cross-env BROWSER=chrome vite build --watch --mode development",
     "dev:firefox": "cross-env BROWSER=firefox vite build --watch --mode development",
-    "test": "node --test \"shared/**/*.test.js\"",
     "build": "cross-env BROWSER=chrome vite build --mode production",
     "build:chrome": "cross-env BROWSER=chrome vite build --mode production",
     "build:firefox": "cross-env BROWSER=firefox vite build --mode production",

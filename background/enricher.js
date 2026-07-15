@@ -60,11 +60,17 @@ function extractJsonObject(text) {
 export async function enrichCapsule(capsule) {
   try {
     const settingsObj = await chrome.storage.sync.get('kairo_settings');
-    const apiKey = settingsObj.kairo_settings?.apiKey;
+    const enrichEngine = settingsObj.kairo_settings?.enrichEngine || 'claude';
+    const claudeApiKey = settingsObj.kairo_settings?.apiKey;
+    const geminiApiKey = settingsObj.kairo_settings?.geminiApiKey;
     const autoTag = settingsObj.kairo_settings?.autoTag === true;
 
-    if (!apiKey) {
-      console.warn('[Kairo Enricher] No API key configured — skipping enrichment');
+    if (enrichEngine === 'claude' && !claudeApiKey) {
+      console.warn('[Kairo Enricher] No Claude API key configured — skipping enrichment');
+      return capsule;
+    }
+    if (enrichEngine === 'gemini' && !geminiApiKey) {
+      console.warn('[Kairo Enricher] No Gemini API key configured — skipping enrichment');
       return capsule;
     }
 
@@ -97,30 +103,58 @@ Conversation:
 ${rawText}
     `.trim();
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        // Required for the Anthropic API to accept requests from a non-server
-        // origin (the extension's chrome-extension:// origin in MV3).
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        max_tokens: 800,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+    let text = '{}';
 
-    if (!response.ok) {
-      console.error('[Kairo Enricher] API error:', response.status, response.statusText);
-      return capsule;
+    if (enrichEngine === 'gemini') {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error('[Kairo Enricher] Gemini API error:', response.status, response.statusText);
+        return capsule;
+      }
+
+      const data = await response.json();
+      text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    } else {
+      const apiEndpoint = settingsObj.kairo_settings?.apiEndpoint || 'https://api.anthropic.com/v1/messages';
+      const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeApiKey,
+          'anthropic-version': '2023-06-01',
+          // Required for the Anthropic API to accept requests from a non-server
+          // origin (the extension's chrome-extension:// origin in MV3).
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: DEFAULT_MODEL,
+          max_tokens: 800,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('[Kairo Enricher] Claude API error:', response.status, response.statusText);
+        return capsule;
+      }
+
+      const data = await response.json();
+      text = data.content?.[0]?.text || '{}';
     }
-
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '{}';
 
     // Models sometimes wrap the JSON in prose or code fences; extract the first
     // balanced { ... } object instead of assuming the whole reply is JSON.

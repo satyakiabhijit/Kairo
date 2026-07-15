@@ -56,3 +56,34 @@ export function platformName(source) {
   };
   return names[source] || source || 'Unknown';
 }
+
+/**
+ * Recursively gather text nodes, skipping scripts, styles, and iframes to prevent security errors.
+ * @param {Element} el
+ * @returns {string}
+ */
+export function getSafeText(el) {
+  if (!el) return '';
+  let text = '';
+  const walk = document.createTreeWalker(
+    el,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        let parent = node.parentElement;
+        while (parent) {
+          const tag = parent.tagName;
+          if (tag === 'IFRAME' || tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') {
+            return NodeFilter.FILTER_REJECT;
+          }
+          parent = parent.parentElement;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+  while (walk.nextNode()) {
+    text += walk.currentNode.textContent + ' ';
+  }
+  return text.trim();
+}

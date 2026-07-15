@@ -1,7 +1,7 @@
 // background/service-worker.js — Central hub for Kairo extension
 // Handles: messaging, storage ops, enrichment, keyboard shortcuts, context menus
 
-import { saveCapsule, getCapsules, deleteCapsule, updateCapsule, getSettings, saveSettings, clearAllCapsules } from '../shared/storage.js';
+import { saveCapsule, getCapsules, deleteCapsule, updateCapsule, getSettings, saveSettings, clearAllCapsules, compactDatabase } from '../shared/storage.js';
 import { validateCapsule } from '../shared/capsule.js';
 import { getSupportedMatchPatterns } from '../shared/platforms.js';
 import { enrichCapsule } from './enricher.js';
@@ -60,6 +60,10 @@ const MESSAGE_HANDLERS = {
 
   async CLEAR_ALL() {
     return clearAllCapsules();
+  },
+
+  async COMPACT_DATABASE() {
+    return compactDatabase();
   },
 
   async EXPORT_TO_NOTION(msg) {
@@ -192,43 +196,50 @@ const MESSAGE_HANDLERS = {
         children
       };
 
-      const res = await fetch('https://api.notion.com/v1/pages', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.notionToken}`,
-          'Content-Type': 'application/json',
-          'Notion-Version': '2022-06-28'
-        },
-        body: JSON.stringify(payload)
-      });
+      let res = null;
+      let fallbackRes = null;
+      try {
+        res = await fetch('https://api.notion.com/v1/pages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${settings.notionToken}`,
+            'Content-Type': 'application/json',
+            'Notion-Version': '2022-06-28'
+          },
+          body: JSON.stringify(payload)
+        });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        if (errData?.code === 'validation_error') {
-          payload.properties = {
-            title: {
-              title: titleProp
+        if (!res.ok) {
+          const errData = await res.json();
+          if (errData?.code === 'validation_error') {
+            payload.properties = {
+              title: {
+                title: titleProp
+              }
+            };
+            fallbackRes = await fetch('https://api.notion.com/v1/pages', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${settings.notionToken}`,
+                'Content-Type': 'application/json',
+                'Notion-Version': '2022-06-28'
+              },
+              body: JSON.stringify(payload)
+            });
+            if (!fallbackRes.ok) {
+              const fbErr = await fallbackRes.json();
+              return { success: false, error: fbErr?.message || fallbackRes.statusText };
             }
-          };
-          const fallbackRes = await fetch('https://api.notion.com/v1/pages', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${settings.notionToken}`,
-              'Content-Type': 'application/json',
-              'Notion-Version': '2022-06-28'
-            },
-            body: JSON.stringify(payload)
-          });
-          if (!fallbackRes.ok) {
-            const fbErr = await fallbackRes.json();
-            return { success: false, error: fbErr?.message || fallbackRes.statusText };
+            return { success: true };
           }
-          return { success: true };
+          return { success: false, error: errData?.message || res.statusText };
         }
-        return { success: false, error: errData?.message || res.statusText };
-      }
 
-      return { success: true };
+        return { success: true };
+      } finally {
+        res = null;
+        fallbackRes = null;
+      }
     } catch (err) {
       console.error('[Kairo SW] Notion export error:', err);
       return { success: false, error: err.message };
@@ -249,6 +260,20 @@ const MESSAGE_HANDLERS = {
         func: (contextText) => {
           if (!contextText) return false;
 
+          function querySelectorShadow(root, selector) {
+            const found = root.querySelector(selector);
+            if (found) return found;
+
+            const elements = root.querySelectorAll('*');
+            for (const el of elements) {
+              if (el.shadowRoot) {
+                const inner = querySelectorShadow(el.shadowRoot, selector);
+                if (inner) return inner;
+              }
+            }
+            return null;
+          }
+
           const selectors = [
             'div[contenteditable="true"]',
             '#prompt-textarea',
@@ -258,7 +283,7 @@ const MESSAGE_HANDLERS = {
           ];
           let el = null;
           for (const sel of selectors) {
-            el = document.querySelector(sel);
+            el = querySelectorShadow(document, sel);
             if (el) break;
           }
           if (!el) return false;
@@ -414,7 +439,7 @@ async function handleSave(capsule, options = {}) {
   }
 }
 
-// ─── Keyboard Shortcut: Ctrl+Shift+S ──────────────────────────────
+// ─── Keyboard Shortcut: Command listeners ──────────────────────────
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'capture-kairo') {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
@@ -424,6 +449,14 @@ chrome.commands.onCommand.addListener((command) => {
         func: () => window.__kairoTriggerCapture?.(),
       }).catch(err => {
         console.error('[Kairo SW] Shortcut trigger error:', err);
+      });
+    });
+  } else if (command === 'toggle-floating-btn') {
+    chrome.storage.sync.get('kairo_settings', (res) => {
+      const settings = (res && res.kairo_settings) || {};
+      settings.showFloatingButton = settings.showFloatingButton !== false ? false : true;
+      chrome.storage.sync.set({ kairo_settings: settings }, () => {
+        console.log('[Kairo SW] showFloatingButton toggled to:', settings.showFloatingButton);
       });
     });
   }
@@ -441,12 +474,112 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'kairo-capture' && tab?.id) {
+    if (!tab.url || tab.url.startsWith('chrome:') || tab.url.startsWith('file:') || tab.url.startsWith('about:') || tab.url.startsWith('edge:')) {
+      console.warn('[Kairo SW] Context menu capture skipped: unsupported URL protocol', tab.url);
+      return;
+    }
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => window.__kairoTriggerCapture?.(),
     }).catch(err => {
       console.error('[Kairo SW] Context menu trigger error:', err);
     });
+  }
+});
+
+// Copy text to clipboard in background page/active tab
+async function copyToClipboard(tabId, text) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (txt) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = txt;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      },
+      args: [text],
+    });
+    return true;
+  } catch (err) {
+    console.error('[Kairo SW] Failed to copy to clipboard via script execution:', err);
+    return false;
+  }
+}
+
+// ─── Omnibox Search & Copy ────────────────────────────────────────
+chrome.omnibox.onInputChanged.addListener(async (text, suggest) => {
+  try {
+    const capsules = await getCapsules();
+    const query = text.trim().toLowerCase();
+    const filtered = capsules.filter(c => 
+      (c.title || '').toLowerCase().includes(query) ||
+      (c.content?.summary || '').toLowerCase().includes(query)
+    ).slice(0, 5);
+
+    const suggestions = filtered.map(c => ({
+      content: c.id,
+      description: `Kairo: ${c.title || 'Untitled'} - ${c.content?.summary?.slice(0, 50) || 'no summary'}`
+    }));
+
+    suggest(suggestions);
+  } catch (err) {
+    console.error('[Kairo SW] Omnibox error:', err);
+  }
+});
+
+chrome.omnibox.onInputEntered.addListener(async (text) => {
+  try {
+    const capsules = await getCapsules();
+    let capsule = capsules.find(c => c.id === text);
+    if (!capsule && text) {
+      // Fallback: prefix match
+      capsule = capsules.find(c => (c.title || '').toLowerCase().includes(text.toLowerCase()));
+    }
+    if (!capsule) return;
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+
+    const settings = await getSettings();
+    const template = settings?.injectionTemplate;
+    
+    let formattedText = '';
+    if (capsule.content?.summary) {
+      const goals = (capsule.content.goals || []).join(', ');
+      const stack = (capsule.content.stack || []).join(', ');
+      const keyDecisions = (capsule.content.keyDecisions || []).join(', ');
+      const constraints = (capsule.content.constraints || []).join(', ');
+
+      if (template && template.trim()) {
+        let txt = template;
+        txt = txt.replace(/{title}/g, capsule.title || 'Untitled');
+        txt = txt.replace(/{summary}/g, capsule.content.summary || '');
+        txt = txt.replace(/{goals}/g, goals || '');
+        txt = txt.replace(/{stack}/g, stack || '');
+        txt = txt.replace(/{keyDecisions}/g, keyDecisions || '');
+        txt = txt.replace(/{constraints}/g, constraints || '');
+        formattedText = txt;
+      } else {
+        formattedText = `[Context from Kairo]\n\n${capsule.content.summary}\n\nGoals: ${goals}\n\nStack: ${stack}\n\nKey Decisions: ${keyDecisions}`;
+      }
+    } else {
+      formattedText = capsule.content?.rawSnippet || '';
+    }
+
+    const success = await copyToClipboard(tab.id, formattedText);
+    if (success) {
+      chrome.notifications.create('kairo-omnibox-copied', {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('assets/brand-logo.png'),
+        title: 'Kairo Context Copied',
+        message: `Successfully copied context from "${capsule.title || 'Untitled'}"`,
+      });
+    }
+  } catch (err) {
+    console.error('[Kairo SW] Omnibox input entered failed:', err);
   }
 });
 

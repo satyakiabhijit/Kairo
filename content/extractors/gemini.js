@@ -1,6 +1,8 @@
 // content/extractors/gemini.js — Gemini DOM extractor
 // Selectors verified: May 2026
 
+import { getSafeText } from '../../shared/utils.js';
+
 export default {
   platform: 'gemini',
 
@@ -15,8 +17,8 @@ export default {
       const turns = [];
       const max = Math.max(userTurns.length, aiTurns.length);
       for (let i = 0; i < max; i++) {
-        if (userTurns[i]) turns.push({ role: 'user', text: userTurns[i].innerText.trim() });
-        if (aiTurns[i]) turns.push({ role: 'assistant', text: aiTurns[i].innerText.trim() });
+        if (userTurns[i]) turns.push({ role: 'user', text: getSafeText(userTurns[i]) });
+        if (aiTurns[i]) turns.push({ role: 'assistant', text: getSafeText(aiTurns[i]) });
       }
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (primary selector)`);
       return turns.filter(t => t.text.length > 0);
@@ -29,8 +31,8 @@ export default {
       const turns = [];
       const max = Math.max(userTurns.length, aiTurns.length);
       for (let i = 0; i < max; i++) {
-        if (userTurns[i]) turns.push({ role: 'user', text: userTurns[i].innerText.trim() });
-        if (aiTurns[i]) turns.push({ role: 'assistant', text: aiTurns[i].innerText.trim() });
+        if (userTurns[i]) turns.push({ role: 'user', text: getSafeText(userTurns[i]) });
+        if (aiTurns[i]) turns.push({ role: 'assistant', text: getSafeText(aiTurns[i]) });
       }
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (data-id selector)`);
       return turns.filter(t => t.text.length > 0);
@@ -42,7 +44,7 @@ export default {
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (content class)`);
       return turns.map(el => {
         const isUser = el.className.toLowerCase().includes('query');
-        return { role: isUser ? 'user' : 'assistant', text: el.innerText.trim() };
+        return { role: isUser ? 'user' : 'assistant', text: getSafeText(el) };
       }).filter(t => t.text.length > 0);
     }
 
@@ -53,13 +55,13 @@ export default {
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (class pattern)`);
       return turns.map((el, i) => ({
         role: i % 2 === 0 ? 'user' : 'assistant',
-        text: el.innerText.trim(),
+        text: getSafeText(el),
       })).filter(t => t.text.length > 0);
     }
 
     // Final fallback
     console.warn('[Kairo Extractor] Gemini: using full-page text fallback');
-    const bodyText = document.body.innerText.trim();
+    const bodyText = getSafeText(document.body);
     if (bodyText.length > 50) {
       return [{ role: 'user', text: bodyText.slice(0, 8000) }];
     }

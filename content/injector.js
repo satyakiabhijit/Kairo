@@ -4,13 +4,29 @@ import { buildInjectionText, insertTextIntoEditor } from '../shared/inject.js';
 
 let buttonWrapper = null;
 let currentTextarea = null;
+let settings = {};
+
+chrome.storage.sync.get('kairo_settings', (res) => {
+  if (res && res.kairo_settings) {
+    settings = res.kairo_settings;
+  }
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.kairo_settings) {
+    settings = changes.kairo_settings.newValue || {};
+  }
+});
 
 const VIEWPORT_MARGIN = 12;
 const BUTTON_SIZE = 32;
 const MENU_WIDTH = 250;
 
 export function injectButton(onCapture) {
-  if (document.getElementById('kairo-container')) return;
+  const existing = document.getElementById('kairo-container');
+  if (existing) {
+    existing.remove();
+  }
 
   // Create a container for the button and menu
   const container = document.createElement('div');
@@ -201,7 +217,7 @@ export function injectButton(onCapture) {
         item.addEventListener('mouseleave', () => item.style.background = '#2a2a2a');
 
         item.addEventListener('dragstart', (e) => {
-          e.dataTransfer.setData('text/plain', buildInjectionText(capsule));
+          e.dataTransfer.setData('text/plain', buildInjectionText(capsule, settings?.injectionTemplate));
           item.style.opacity = '0.5';
           modal.style.opacity = '0.3';
         });
@@ -212,7 +228,7 @@ export function injectButton(onCapture) {
         });
 
         item.addEventListener('click', () => {
-          injectText(buildInjectionText(capsule) || 'No content found.');
+          injectText(buildInjectionText(capsule, settings?.injectionTemplate) || 'No content found.');
           modal.style.display = 'none';
         });
 
@@ -266,6 +282,20 @@ function styleMenuOption(opt) {
   opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
 }
 
+function querySelectorShadow(root, selector) {
+  const found = root.querySelector(selector);
+  if (found) return found;
+
+  const elements = root.querySelectorAll('*');
+  for (const el of elements) {
+    if (el.shadowRoot) {
+      const inner = querySelectorShadow(el.shadowRoot, selector);
+      if (inner) return inner;
+    }
+  }
+  return null;
+}
+
 function trackInputArea() {
   const findInput = () => {
     // Selectors for chat inputs across platforms
@@ -280,7 +310,7 @@ function trackInputArea() {
     ];
 
     for (const sel of selectors) {
-      const el = document.querySelector(sel);
+      const el = querySelectorShadow(document, sel);
       if (el) return el;
     }
     return null;
@@ -349,7 +379,12 @@ function trackInputArea() {
         // Position outside the right side of the ChatGPT input bar
         // rect is the text area itself, which ends before the mic/send buttons. 
         // Adding ~110px pushes it past those buttons to sit cleanly on the right.
-        left = rect.right + 110;
+        const isCanvasActive = document.querySelector('[data-testid="canvas-container"], [class*="canvas-container"], div[class*="canvas"]') !== null;
+        if (isCanvasActive) {
+          left = rect.right - 10;
+        } else {
+          left = rect.right + 110;
+        }
         top = rect.bottom - 48;
       } else if (location.hostname.includes('claude.ai')) {
         // Claude's ProseMirror editor is padded inside a card container.
@@ -362,9 +397,9 @@ function trackInputArea() {
         left = rect.right + 162;
         top = rect.bottom - 32;
       } else if (location.hostname.includes('deepseek.com')) {
-        // DeepSeek-specific position: lift it up to align with the vertical center of the card
-        left = rect.right + 16;
-        top = rect.bottom - 58;
+        // DeepSeek-specific position: push it outside on the right and offset upwards to not overlay send controls
+        left = rect.right + 76;
+        top = rect.bottom - 48;
       } else {
         // DeepSeek, etc.
         left = rect.right + 12;
@@ -401,6 +436,13 @@ function trackInputArea() {
   // Catch the input being added, removed, or moved (incl. SPA navigation).
   const domObserver = new MutationObserver(scheduleUpdate);
   domObserver.observe(document.body, { childList: true, subtree: true });
+
+  window.addEventListener('beforeunload', () => {
+    domObserver.disconnect();
+    if (inputResizeObserver) {
+      inputResizeObserver.disconnect();
+    }
+  });
 
   // Initial placement.
   scheduleUpdate();

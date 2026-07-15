@@ -29,6 +29,10 @@ export const TRANSLATIONS = {
     badgePinned: 'Pinned',
     badgeEnriched: 'Enriched',
     untitledCapsule: 'Untitled Capsule',
+    turnsBadge: '{count} turns',
+    wordsBadge: '{count} words',
+    turnBadge: '1 turn',
+    wordBadge: '1 word',
 
     // Options Page
     settingsTitle: 'Kairo Settings',
@@ -115,6 +119,10 @@ export const TRANSLATIONS = {
     badgePinned: 'Fijado',
     badgeEnriched: 'Enriquecido',
     untitledCapsule: 'Cápsula sin título',
+    turnsBadge: '{count} turnos',
+    wordsBadge: '{count} palabras',
+    turnBadge: '1 turno',
+    wordBadge: '1 palabra',
 
     // Options Page
     settingsTitle: 'Configuración de Kairo',

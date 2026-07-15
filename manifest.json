@@ -8,7 +8,8 @@
     "activeTab",
     "scripting",
     "contextMenus",
-    "notifications"
+    "notifications",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "https://claude.ai/*",
@@ -17,7 +18,8 @@
     "https://gemini.google.com/*",
     "https://chat.deepseek.com/*",
     "https://api.anthropic.com/*",
-    "https://api.notion.com/*"
+    "https://api.notion.com/*",
+    "https://generativelanguage.googleapis.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -44,6 +46,9 @@
       "128": "assets/brand-logo.png"
     }
   },
+  "omnibox": {
+    "keyword": "k"
+  },
   "options_ui": {
     "page": "options/index.html",
     "open_in_tab": true
@@ -52,6 +57,10 @@
     "capture-kairo": {
       "suggested_key": { "default": "Ctrl+Shift+S" },
       "description": "Capture current AI chat as a Kairo Capsule"
+    },
+    "toggle-floating-btn": {
+      "suggested_key": { "default": "Ctrl+Shift+H" },
+      "description": "Toggle visibility of the floating capture button"
     }
   },
   "icons": {

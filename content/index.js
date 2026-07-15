@@ -5,6 +5,7 @@ import { injectButton, promptCapsuleName, registerCaptureTrigger } from './injec
 import { createCapsule } from '../shared/capsule.js';
 
 (async function init() {
+  if (window !== window.top) return;
   try {
     const extractor = getExtractor(location.hostname);
 
@@ -67,10 +68,15 @@ import { createCapsule } from '../shared/capsule.js';
       const MAX_TURN_TEXT = 3000;
       const safeTurns = turns
         .slice(-MAX_TURNS)                          // keep most recent turns
-        .map(t => ({ role: t.role, text: t.text.slice(0, MAX_TURN_TEXT) }));
+        .map(t => ({
+          role: t.role,
+          text: t.text.slice(0, MAX_TURN_TEXT),
+          reasoning: t.reasoning ? t.reasoning.slice(0, MAX_TURN_TEXT) : undefined
+        }));
 
       console.log(`[Kairo] Step 2: using ${safeTurns.length} turns (capped from ${turns.length})`);
       const snippet = safeTurns.map(t => `[${t.role}]: ${t.text}`).join('\n\n');
+      const reasoningText = safeTurns.map(t => t.reasoning).filter(Boolean).join('\n\n');
 
       let capsule;
       try {
@@ -78,6 +84,9 @@ import { createCapsule } from '../shared/capsule.js';
           source: extractor.platform,
           url: location.href,
           title: capsuleTitle,
+          meta: {
+            reasoning: reasoningText || undefined
+          },
           content: {
             rawTurns: safeTurns,
             rawSnippet: snippet.slice(-4000),
@@ -134,6 +143,21 @@ import { createCapsule } from '../shared/capsule.js';
       console.log('[Kairo] Floating button disabled in settings — registering capture trigger only (keyboard shortcut + context menu still work)');
       registerCaptureTrigger(captureHandler);
     }
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'sync' && changes.kairo_settings) {
+        const newVal = changes.kairo_settings.newValue || {};
+        const oldVal = changes.kairo_settings.oldValue || {};
+        if (newVal.showFloatingButton !== oldVal.showFloatingButton) {
+          if (newVal.showFloatingButton !== false) {
+            injectButton(captureHandler);
+          } else {
+            const existing = document.getElementById('kairo-container');
+            if (existing) existing.remove();
+          }
+        }
+      }
+    });
 
     console.log('[Kairo] Content script initialized');
   } catch (err) {

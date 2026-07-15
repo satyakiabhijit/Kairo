@@ -2,6 +2,8 @@
 // Serves chatgpt.com (the legacy OpenAI chat host permanently redirects here)
 // Selectors verified: May 2026
 
+import { getSafeText } from '../../shared/utils.js';
+
 /**
  * Best-effort per-element role detection for the fallback strategies, replacing
  * blind positional (i % 2) alternation. Inspects the element (and, for explicit
@@ -86,12 +88,22 @@ export default {
     turns = [...root.querySelectorAll('[data-message-author-role]')];
     if (turns.length) {
       // Filter out anything that might be from nav/sidebar (no meaningful text)
-      const filtered = turns.filter(el => el.innerText.trim().length > 0);
+      const filtered = turns.filter(el => getSafeText(el).length > 0);
       console.log(`[Kairo Extractor] ChatGPT: ${filtered.length} turns (data-message-author-role, thread-scoped)`);
       return filtered.map(el => ({
         role: el.dataset.messageAuthorRole === 'user' ? 'user' : 'assistant',
-        text: el.innerText.trim(),
+        text: getSafeText(el),
       }));
+    }
+
+    // Strategy 1.5: data-message-id — stable in newer ChatGPT UI
+    turns = [...root.querySelectorAll('[data-message-id]')];
+    if (turns.length) {
+      console.log(`[Kairo Extractor] ChatGPT: ${turns.length} turns (data-message-id)`);
+      return turns.map(el => ({
+        role: detectRole(el),
+        text: getSafeText(el),
+      })).filter(t => t.text.length > 0 && t.role !== 'unknown');
     }
 
     // Strategy 2: article[data-testid="conversation-turn-*"]
@@ -100,7 +112,7 @@ export default {
       console.log(`[Kairo Extractor] ChatGPT: ${turns.length} turns (article[data-testid])`);
       return turns.map(el => ({
         role: el.querySelector('[data-message-author-role="user"]') !== null ? 'user' : 'assistant',
-        text: el.innerText.trim(),
+        text: getSafeText(el),
       })).filter(t => t.text.length > 0);
     }
 
@@ -110,7 +122,7 @@ export default {
       console.log(`[Kairo Extractor] ChatGPT: ${turns.length} turns (.group in main)`);
       return turns.map(el => ({
         role: detectRole(el),
-        text: el.innerText.trim(),
+        text: getSafeText(el),
         _lowConfidenceRole: true,
       })).filter(t => t.text.length > 0);
     }
@@ -124,7 +136,7 @@ export default {
         console.log(`[Kairo Extractor] ChatGPT: ${deduped.length} turns (div[class*=message] deduped)`);
         return deduped.map(el => ({
           role: detectRole(el),
-          text: el.innerText.trim(),
+          text: getSafeText(el),
           _lowConfidenceRole: true,
         })).filter(t => t.text.length > 0);
       }
@@ -134,12 +146,12 @@ export default {
     const mainEl = document.querySelector('main') || document.querySelector('[role="main"]');
     if (mainEl) {
       const allBlocks = [...mainEl.querySelectorAll(':scope > * > * > *')];
-      const textBlocks = allBlocks.filter(el => el.innerText.trim().length > 30);
+      const textBlocks = allBlocks.filter(el => getSafeText(el).length > 30);
       if (textBlocks.length >= 2) {
         console.log(`[Kairo Extractor] ChatGPT: ${textBlocks.length} blocks (main children)`);
         return textBlocks.map(el => ({
           role: detectRole(el),
-          text: el.innerText.trim(),
+          text: getSafeText(el),
           _lowConfidenceRole: true,
         }));
       }
@@ -147,7 +159,7 @@ export default {
 
     // Final fallback — full page visible text
     console.warn('[Kairo Extractor] ChatGPT: using full-page text fallback');
-    const bodyText = document.body.innerText.trim();
+    const bodyText = getSafeText(document.body);
     if (bodyText.length > 50) {
       return [{ role: 'user', text: bodyText.slice(0, 8000) }];
     }

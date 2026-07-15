@@ -1,5 +1,4 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import {
   getPlatformByHost,
   getSupportedMatchPatterns,
@@ -7,27 +6,24 @@ import {
 } from './platforms.js';
 
 test('normalizeHostname strips a www prefix and lowercases hostnames', () => {
-  assert.equal(normalizeHostname('WWW.ChatGPT.com'), 'chatgpt.com');
+  expect(normalizeHostname('WWW.ChatGPT.com')).toBe('chatgpt.com');
 });
 
 test('getPlatformByHost supports primary and legacy ChatGPT hosts', () => {
-  assert.equal(getPlatformByHost('chatgpt.com')?.key, 'chatgpt');
-  assert.equal(getPlatformByHost('chat.openai.com')?.key, 'chatgpt');
+  expect(getPlatformByHost('chatgpt.com')?.key).toBe('chatgpt');
+  expect(getPlatformByHost('chat.openai.com')?.key).toBe('chatgpt');
 });
 
 test('getPlatformByHost supports nested app subdomains', () => {
-  assert.equal(getPlatformByHost('preview.claude.ai')?.key, 'claude');
+  expect(getPlatformByHost('preview.claude.ai')?.key).toBe('claude');
 });
 
 test('getSupportedMatchPatterns includes all declared content script hosts', () => {
-  assert.deepEqual(
-    getSupportedMatchPatterns(),
-    [
-      'https://claude.ai/*',
-      'https://chatgpt.com/*',
-      'https://chat.openai.com/*',
-      'https://gemini.google.com/*',
-      'https://chat.deepseek.com/*',
-    ]
-  );
+  expect(getSupportedMatchPatterns()).toEqual([
+    'https://claude.ai/*',
+    'https://chatgpt.com/*',
+    'https://chat.openai.com/*',
+    'https://gemini.google.com/*',
+    'https://chat.deepseek.com/*',
+  ]);
 });
