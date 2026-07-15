@@ -192,43 +192,50 @@ const MESSAGE_HANDLERS = {
         children
       };
 
-      const res = await fetch('https://api.notion.com/v1/pages', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.notionToken}`,
-          'Content-Type': 'application/json',
-          'Notion-Version': '2022-06-28'
-        },
-        body: JSON.stringify(payload)
-      });
+      let res = null;
+      let fallbackRes = null;
+      try {
+        res = await fetch('https://api.notion.com/v1/pages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${settings.notionToken}`,
+            'Content-Type': 'application/json',
+            'Notion-Version': '2022-06-28'
+          },
+          body: JSON.stringify(payload)
+        });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        if (errData?.code === 'validation_error') {
-          payload.properties = {
-            title: {
-              title: titleProp
+        if (!res.ok) {
+          const errData = await res.json();
+          if (errData?.code === 'validation_error') {
+            payload.properties = {
+              title: {
+                title: titleProp
+              }
+            };
+            fallbackRes = await fetch('https://api.notion.com/v1/pages', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${settings.notionToken}`,
+                'Content-Type': 'application/json',
+                'Notion-Version': '2022-06-28'
+              },
+              body: JSON.stringify(payload)
+            });
+            if (!fallbackRes.ok) {
+              const fbErr = await fallbackRes.json();
+              return { success: false, error: fbErr?.message || fallbackRes.statusText };
             }
-          };
-          const fallbackRes = await fetch('https://api.notion.com/v1/pages', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${settings.notionToken}`,
-              'Content-Type': 'application/json',
-              'Notion-Version': '2022-06-28'
-            },
-            body: JSON.stringify(payload)
-          });
-          if (!fallbackRes.ok) {
-            const fbErr = await fallbackRes.json();
-            return { success: false, error: fbErr?.message || fallbackRes.statusText };
+            return { success: true };
           }
-          return { success: true };
+          return { success: false, error: errData?.message || res.statusText };
         }
-        return { success: false, error: errData?.message || res.statusText };
-      }
 
-      return { success: true };
+        return { success: true };
+      } finally {
+        res = null;
+        fallbackRes = null;
+      }
     } catch (err) {
       console.error('[Kairo SW] Notion export error:', err);
       return { success: false, error: err.message };
