@@ -510,7 +510,7 @@ function OptionsPage() {
               <label class="field-label" for="template-input">Markdown Template</label>
               <textarea
                 class="text-input"
-                style="min-height: 100px; font-family: monospace; font-size: 12px; line-height: 1.5; resize: vertical;"
+                style="box-sizing: border-box; width: 100%; min-height: 100px; font-family: monospace; font-size: 12px; line-height: 1.5; resize: vertical;"
                 id="template-input"
                 placeholder="[Context from Kairo]\n\n{summary}\n\nGoals: {goals}\n\nStack: {stack}"
                 value=${settings.injectionTemplate}
