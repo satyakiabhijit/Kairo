@@ -67,6 +67,7 @@ function Popup() {
     notionEnabled: false,
   });
   const [activeDateFilter, setActiveDateFilter] = useState('all');
+  const [folderQuery, setFolderQuery] = useState('');
   const [expandedFolders, setExpandedFolders] = useState({});
 
   const toggleFolder = useCallback((path) => {
@@ -456,7 +457,25 @@ function Popup() {
     ${folders.length > 0 && html`
       <div class="filters" style="padding-top: 0; display: block; padding-left: 16px; padding-right: 16px; margin-bottom: 8px;">
         <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Folders:</div>
-        ${renderFolderNode(buildFolderTree(folders))}
+        <div style="margin-bottom: 6px;">
+          <input 
+            type="text" 
+            placeholder="Search folders..." 
+            value=${folderQuery}
+            onInput=${e => setFolderQuery(e.target.value)}
+            style="
+              width: 100%;
+              background: var(--bg-input);
+              color: var(--text-primary);
+              border: 1px solid var(--border-subtle);
+              border-radius: var(--radius-sm);
+              padding: 4px 8px;
+              font-size: 11px;
+              box-sizing: border-box;
+            "
+          />
+        </div>
+        ${renderFolderNode(buildFolderTree(folders.filter(f => f.toLowerCase().includes(folderQuery.toLowerCase()))))}
       </div>
     `}
 
