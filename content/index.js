@@ -144,6 +144,21 @@ import { createCapsule } from '../shared/capsule.js';
       registerCaptureTrigger(captureHandler);
     }
 
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'sync' && changes.kairo_settings) {
+        const newVal = changes.kairo_settings.newValue || {};
+        const oldVal = changes.kairo_settings.oldValue || {};
+        if (newVal.showFloatingButton !== oldVal.showFloatingButton) {
+          if (newVal.showFloatingButton !== false) {
+            injectButton(captureHandler);
+          } else {
+            const existing = document.getElementById('kairo-container');
+            if (existing) existing.remove();
+          }
+        }
+      }
+    });
+
     console.log('[Kairo] Content script initialized');
   } catch (err) {
     console.error('[Kairo] Content script init error:', err);

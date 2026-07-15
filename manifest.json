@@ -57,6 +57,10 @@
     "capture-kairo": {
       "suggested_key": { "default": "Ctrl+Shift+S" },
       "description": "Capture current AI chat as a Kairo Capsule"
+    },
+    "toggle-floating-btn": {
+      "suggested_key": { "default": "Ctrl+Shift+H" },
+      "description": "Toggle visibility of the floating capture button"
     }
   },
   "icons": {

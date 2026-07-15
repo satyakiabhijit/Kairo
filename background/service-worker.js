@@ -414,7 +414,7 @@ async function handleSave(capsule, options = {}) {
   }
 }
 
-// ─── Keyboard Shortcut: Ctrl+Shift+S ──────────────────────────────
+// ─── Keyboard Shortcut: Command listeners ──────────────────────────
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'capture-kairo') {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
@@ -424,6 +424,14 @@ chrome.commands.onCommand.addListener((command) => {
         func: () => window.__kairoTriggerCapture?.(),
       }).catch(err => {
         console.error('[Kairo SW] Shortcut trigger error:', err);
+      });
+    });
+  } else if (command === 'toggle-floating-btn') {
+    chrome.storage.sync.get('kairo_settings', (res) => {
+      const settings = (res && res.kairo_settings) || {};
+      settings.showFloatingButton = settings.showFloatingButton !== false ? false : true;
+      chrome.storage.sync.set({ kairo_settings: settings }, () => {
+        console.log('[Kairo SW] showFloatingButton toggled to:', settings.showFloatingButton);
       });
     });
   }
