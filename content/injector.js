@@ -379,7 +379,12 @@ function trackInputArea() {
         // Position outside the right side of the ChatGPT input bar
         // rect is the text area itself, which ends before the mic/send buttons. 
         // Adding ~110px pushes it past those buttons to sit cleanly on the right.
-        left = rect.right + 110;
+        const isCanvasActive = document.querySelector('[data-testid="canvas-container"], [class*="canvas-container"], div[class*="canvas"]') !== null;
+        if (isCanvasActive) {
+          left = rect.right - 10;
+        } else {
+          left = rect.right + 110;
+        }
         top = rect.bottom - 48;
       } else if (location.hostname.includes('claude.ai')) {
         // Claude's ProseMirror editor is padded inside a card container.
