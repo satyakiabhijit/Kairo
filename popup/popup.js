@@ -334,6 +334,10 @@ function Popup() {
     return t('capsulesCountMany', loc, { count: sorted.length });
   };
 
+  const tagMatch = query.match(/#([^\s#]*)$/);
+  const allTags = [...new Set(capsules.flatMap(c => c.meta?.tags || []))];
+  const suggestedTags = tagMatch ? allTags.filter(t => t.toLowerCase().includes(tagMatch[1].toLowerCase())) : [];
+
   // ─── Render ─────────────────────────────────────────────────
   return html`
     <!-- Header -->
@@ -349,7 +353,7 @@ function Popup() {
     </div>
 
     <!-- Search -->
-    <div class="search-container">
+    <div class="search-container" style="position: relative;">
       <div class="search-wrapper">
         <span class="search-icon">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
@@ -367,6 +371,47 @@ function Popup() {
           id="kairo-search"
         />
       </div>
+
+      ${suggestedTags.length > 0 && html`
+        <div class="tag-suggestions" style="
+          position: absolute;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          width: calc(100% - 32px);
+          max-height: 120px;
+          overflow-y: auto;
+          z-index: 100;
+          left: 16px;
+          top: 100%;
+          margin-top: 4px;
+          padding: 4px 0;
+        ">
+          ${suggestedTags.map(tag => html`
+            <div 
+              key=${tag}
+              onClick=${() => {
+                const index = query.lastIndexOf('#');
+                const newQuery = query.slice(0, index) + '#' + tag + ' ';
+                setQuery(newQuery);
+                setTimeout(() => document.getElementById('kairo-search')?.focus(), 50);
+              }}
+              style="
+                padding: 6px 12px;
+                font-size: 11px;
+                color: var(--text-primary);
+                cursor: pointer;
+              "
+              class="suggestion-item"
+              onMouseEnter=${e => e.target.style.background = 'rgba(255,255,255,0.06)'}
+              onMouseLeave=${e => e.target.style.background = 'transparent'}
+            >
+              #${tag}
+            </div>
+          `)}
+        </div>
+      `}
     </div>
 
     <!-- Date Range & Platform Filters -->
