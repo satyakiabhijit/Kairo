@@ -30,6 +30,28 @@ function buildFolderTree(folders) {
   return root;
 }
 
+function highlightMatch(text, query) {
+  if (!text) return '';
+  if (!query || !query.trim()) return text;
+  const q = query.trim();
+  const index = text.toLowerCase().indexOf(q.toLowerCase());
+  if (index === -1) return text;
+
+  const parts = [];
+  let current = text;
+  while (true) {
+    const idx = current.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) {
+      parts.push(current);
+      break;
+    }
+    parts.push(current.slice(0, idx));
+    parts.push(html`<mark style="background: rgba(108, 71, 255, 0.25); color: inherit; padding: 0 2px; border-radius: 2px;">${current.slice(idx, idx + q.length)}</mark>`);
+    current = current.slice(idx + q.length);
+  }
+  return parts;
+}
+
 // ─── Main Popup Component ───────────────────────────────────────
 function Popup() {
   const [capsules, setCapsules] = useState([]);
@@ -386,6 +408,7 @@ function Popup() {
           key=${c.id}
           capsule=${c}
           locale=${loc}
+          searchQuery=${query}
           notionEnabled=${settings.notionEnabled}
           onCopy=${handleCopy}
           onInject=${handleInject}
@@ -433,7 +456,7 @@ function Popup() {
   `;
 }
 
-function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotion, onPin, onExportSingle, onDelete }) {
+function CapsuleCard({ capsule, locale, notionEnabled, searchQuery, onCopy, onInject, onNotion, onPin, onExportSingle, onDelete }) {
   const c = capsule;
   const summaryText = c.content?.summary || c.content?.rawSnippet || '';
   const [includeReasoning, setIncludeReasoning] = useState(false);
@@ -457,7 +480,7 @@ function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotio
   return html`
     <div class="capsule-card" id="capsule-${c.id?.slice(0, 8)}" tabindex="0" onKeyDown=${handleKeyDown}>
       <div class="card-header">
-        <div class="card-title">${c.title || t('untitledCapsule', locale)}</div>
+        <div class="card-title">${highlightMatch(c.title || t('untitledCapsule', locale), searchQuery)}</div>
         <button class="icon-btn pin-btn" onClick=${() => onPin(c)} title=${c.meta?.pinned ? 'Unpin' : 'Pin'} style="border:none; background:transparent; cursor:pointer; padding: 2px 6px;">
           <i class="fa-solid fa-thumb-tack" style="color: ${c.meta?.pinned ? 'var(--accent)' : 'var(--text-muted)'};"></i>
         </button>
@@ -488,7 +511,7 @@ function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotio
       `}
 
       ${summaryText && html`
-        <div class="card-summary">${truncate(summaryText, 140)}</div>
+        <div class="card-summary">${highlightMatch(truncate(summaryText, 140), searchQuery)}</div>
       `}
 
       ${c.meta?.tags?.length > 0 && html`
