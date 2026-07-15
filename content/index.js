@@ -68,10 +68,15 @@ import { createCapsule } from '../shared/capsule.js';
       const MAX_TURN_TEXT = 3000;
       const safeTurns = turns
         .slice(-MAX_TURNS)                          // keep most recent turns
-        .map(t => ({ role: t.role, text: t.text.slice(0, MAX_TURN_TEXT) }));
+        .map(t => ({
+          role: t.role,
+          text: t.text.slice(0, MAX_TURN_TEXT),
+          reasoning: t.reasoning ? t.reasoning.slice(0, MAX_TURN_TEXT) : undefined
+        }));
 
       console.log(`[Kairo] Step 2: using ${safeTurns.length} turns (capped from ${turns.length})`);
       const snippet = safeTurns.map(t => `[${t.role}]: ${t.text}`).join('\n\n');
+      const reasoningText = safeTurns.map(t => t.reasoning).filter(Boolean).join('\n\n');
 
       let capsule;
       try {
@@ -79,6 +84,9 @@ import { createCapsule } from '../shared/capsule.js';
           source: extractor.platform,
           url: location.href,
           title: capsuleTitle,
+          meta: {
+            reasoning: reasoningText || undefined
+          },
           content: {
             rawTurns: safeTurns,
             rawSnippet: snippet.slice(-4000),

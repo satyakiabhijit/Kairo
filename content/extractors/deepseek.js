@@ -55,6 +55,19 @@ function detectRole(el) {
   return 'unknown';
 }
 
+function processDeepSeekTurn(role, el) {
+  let text = el.innerText.trim();
+  let reasoning = '';
+  if (role === 'assistant') {
+    const thinkEl = el.querySelector('div[class*="think"], div[class*="thought"], think, .ds-think');
+    if (thinkEl) {
+      reasoning = thinkEl.innerText.trim();
+      text = text.replace(reasoning, '').trim();
+    }
+  }
+  return { role, text, reasoning };
+}
+
 export default {
   platform: 'deepseek',
 
@@ -65,20 +78,20 @@ export default {
     turns = [...document.querySelectorAll('.chat-message')];
     if (turns.length) {
       console.log(`[Kairo Extractor] DeepSeek: ${turns.length} turns (chat-message)`);
-      return turns.map(el => ({
-        role: el.classList.contains('user') ? 'user' : 'assistant',
-        text: el.innerText.trim(),
-      })).filter(t => t.text.length > 0);
+      return turns.map(el => {
+        const role = el.classList.contains('user') ? 'user' : 'assistant';
+        return processDeepSeekTurn(role, el);
+      }).filter(t => t.text.length > 0 || t.reasoning?.length > 0);
     }
 
     // Strategy 2: data-role attributes
     turns = [...document.querySelectorAll('[data-role]')];
     if (turns.length) {
       console.log(`[Kairo Extractor] DeepSeek: ${turns.length} turns (data-role)`);
-      return turns.map(el => ({
-        role: el.dataset.role === 'user' ? 'user' : 'assistant',
-        text: el.innerText.trim(),
-      })).filter(t => t.text.length > 0);
+      return turns.map(el => {
+        const role = el.dataset.role === 'user' ? 'user' : 'assistant';
+        return processDeepSeekTurn(role, el);
+      }).filter(t => t.text.length > 0 || t.reasoning?.length > 0);
     }
 
     // Strategy 3: message class patterns
@@ -88,11 +101,9 @@ export default {
       return turns.map(el => {
         const classStr = el.classList.toString().toLowerCase();
         const isUser = classStr.includes('user') || el.querySelector('[class*="user"]') !== null;
-        return {
-          role: isUser ? 'user' : 'assistant',
-          text: el.innerText.trim(),
-        };
-      }).filter(t => t.text.length > 0);
+        const role = isUser ? 'user' : 'assistant';
+        return processDeepSeekTurn(role, el);
+      }).filter(t => t.text.length > 0 || t.reasoning?.length > 0);
     }
 
     // Strategy 4: general conversation area
@@ -101,10 +112,10 @@ export default {
       turns = [...mainArea.querySelectorAll('[class*="message"], [class*="turn"], .markdown')];
       if (turns.length >= 2) {
         console.log(`[Kairo Extractor] DeepSeek: ${turns.length} turns (generic)`);
-        return turns.map(el => ({
-          role: detectRole(el),
-          text: el.innerText.trim(),
-        })).filter(t => t.text.length > 0);
+        return turns.map(el => {
+          const role = detectRole(el);
+          return processDeepSeekTurn(role, el);
+        }).filter(t => t.text.length > 0 || t.reasoning?.length > 0);
       }
     }
 
@@ -112,7 +123,7 @@ export default {
     console.warn('[Kairo Extractor] DeepSeek: using full-page text fallback');
     const bodyText = document.body.innerText.trim();
     if (bodyText.length > 50) {
-      return [{ role: 'user', text: bodyText.slice(0, 8000) }];
+      return [{ role: 'user', text: bodyText.slice(0, 8000), reasoning: '' }];
     }
 
     return [];

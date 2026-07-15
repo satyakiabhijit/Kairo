@@ -11,9 +11,13 @@
  * @param {Object} capsule
  * @returns {string}
  */
-export function buildInjectionText(capsule, template) {
+export function buildInjectionText(capsule, template, options = {}) {
   const content = (capsule && capsule.content) || {};
+  const dateStr = capsule.capturedAt ? new Date(capsule.capturedAt).toLocaleString() : '';
+  const platformStr = capsule.source ? capsule.source.toUpperCase() : '';
+  const turnsCount = content.rawTurns ? content.rawTurns.length : 0;
 
+  let textText = '';
   if (content.summary) {
     const goals = (content.goals || []).join(', ');
     const stack = (content.stack || []).join(', ');
@@ -28,13 +32,22 @@ export function buildInjectionText(capsule, template) {
       text = text.replace(/{stack}/g, stack || '');
       text = text.replace(/{keyDecisions}/g, keyDecisions || '');
       text = text.replace(/{constraints}/g, constraints || '');
-      return text;
+      text = text.replace(/{date}/g, dateStr);
+      text = text.replace(/{platform}/g, platformStr);
+      text = text.replace(/{turns}/g, turnsCount.toString());
+      textText = text;
+    } else {
+      textText = `[Context from Kairo]\n\n${content.summary}\n\nGoals: ${goals}\n\nStack: ${stack}\n\nKey Decisions: ${keyDecisions}`;
     }
-
-    return `[Context from Kairo]\n\n${content.summary}\n\nGoals: ${goals}\n\nStack: ${stack}\n\nKey Decisions: ${keyDecisions}`;
+  } else {
+    textText = content.rawSnippet || '';
   }
 
-  return content.rawSnippet || '';
+  if (options.includeReasoning && capsule.meta?.reasoning) {
+    textText += `\n\n[Thinking Process]\n${capsule.meta.reasoning}`;
+  }
+
+  return textText;
 }
 
 /**

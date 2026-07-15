@@ -94,23 +94,21 @@ function Popup() {
   };
 
   // ─── Copy to clipboard ─────────────────────────────────────
-  const handleCopy = useCallback(async (capsule) => {
+  const handleCopy = useCallback(async (capsule, options = {}) => {
     try {
-      const text = capsule.content?.summary
-        ? `${capsule.title || 'Untitled'}\n\n${capsule.content.summary}\n\nGoals: ${(capsule.content.goals || []).join(', ')}\nStack: ${(capsule.content.stack || []).join(', ')}`
-        : capsule.content?.rawSnippet || '';
+      const text = buildInjectionText(capsule, settings.injectionTemplate, options);
       await navigator.clipboard.writeText(text);
       showToast(t('toastCopied', loc));
     } catch (err) {
       console.error('[Kairo Popup] Copy failed:', err);
       showToast(t('toastCopyFailed', loc));
     }
-  }, [loc]);
+  }, [loc, settings.injectionTemplate]);
 
   // ─── Inject into active tab ────────────────────────────────
-  const handleInject = useCallback(async (capsule) => {
+  const handleInject = useCallback(async (capsule, options = {}) => {
     try {
-      const contextText = buildInjectionText(capsule);
+      const contextText = buildInjectionText(capsule, settings.injectionTemplate, options);
 
       chrome.runtime.sendMessage({
         type: 'INJECT_CONTEXT',
@@ -126,7 +124,7 @@ function Popup() {
       console.error('[Kairo Popup] Inject failed:', err);
       showToast(t('toastInjectFailed', loc));
     }
-  }, [loc]);
+  }, [loc, settings.injectionTemplate]);
 
   // ─── Notion Export ─────────────────────────────────────────
   const handleNotionExport = useCallback((id) => {
@@ -375,10 +373,10 @@ function Popup() {
   `;
 }
 
-// ─── Capsule Card Component ─────────────────────────────────────
 function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotion, onPin, onExportSingle, onDelete }) {
   const c = capsule;
   const summaryText = c.content?.summary || c.content?.rawSnippet || '';
+  const [includeReasoning, setIncludeReasoning] = useState(false);
 
   const turnCount = c.content?.rawTurns?.length || 0;
   const wordCount = (() => {
@@ -392,7 +390,7 @@ function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotio
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onCopy(c);
+      onCopy(c, { includeReasoning });
     }
   };
 
@@ -416,6 +414,19 @@ function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotio
         <span class="card-date" style="margin-left: 8px;">• ${turnsText} • ${wordsText}</span>
       </div>
 
+      ${c.meta?.reasoning && html`
+        <div style="display: flex; align-items: center; gap: 6px; margin: 8px 0; font-size: 11px; color: var(--text-secondary);">
+          <input 
+            type="checkbox" 
+            checked=${includeReasoning} 
+            onChange=${e => setIncludeReasoning(e.target.checked)} 
+            id="toggle-reasoning-${c.id}" 
+            style="cursor: pointer;"
+          />
+          <label for="toggle-reasoning-${c.id}" style="cursor: pointer;">${locale === 'es' ? 'Incluir razonamiento' : 'Include thinking process'}</label>
+        </div>
+      `}
+
       ${summaryText && html`
         <div class="card-summary">${truncate(summaryText, 140)}</div>
       `}
@@ -427,10 +438,10 @@ function CapsuleCard({ capsule, locale, notionEnabled, onCopy, onInject, onNotio
       `}
 
       <div class="card-actions">
-        <button class="card-btn" onClick=${() => onCopy(c)} title=${t('copyBtn', locale)}>
+        <button class="card-btn" onClick=${() => onCopy(c, { includeReasoning })} title=${t('copyBtn', locale)}>
           ${t('copyBtn', locale)}
         </button>
-        <button class="card-btn inject" onClick=${() => onInject(c)} title=${t('injectBtn', locale)}>
+        <button class="card-btn inject" onClick=${() => onInject(c, { includeReasoning })} title=${t('injectBtn', locale)}>
           ${t('injectBtn', locale)}
         </button>
         ${notionEnabled && html`
