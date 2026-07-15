@@ -83,11 +83,13 @@ export async function getCapsules() {
     syncedPinned.forEach(syncCap => {
       const idx = localCaps.findIndex(c => c.id === syncCap.id);
       if (idx === -1) {
-        localCaps.unshift(syncCap);
-        modified = true;
+        if (syncCap.meta?.pinned) {
+          localCaps.unshift(syncCap);
+          modified = true;
+        }
       } else {
         const localCap = localCaps[idx];
-        if (!localCap.meta?.pinned || (syncCap.updatedAt || 0) > (localCap.updatedAt || 0)) {
+        if ((syncCap.updatedAt || 0) > (localCap.updatedAt || 0)) {
           localCaps[idx] = { ...localCap, ...syncCap };
           modified = true;
         }
