@@ -62,31 +62,41 @@ Before claiming an issue or submitting a PR, contributors are expected to:
 
 ## 🚀 `// QUICK START (10 MIN QUEST)`
 
-### 1. Install & Run
+### 📥 For Non-Coders (Easy Install)
+If you don't have coding experience, you can easily download and add the extension:
+1. Go to the [Releases](https://github.com/satyakiabhijit/Kairo/releases) page and download the latest `.zip` file.
+2. Extract the downloaded `.zip` file to a folder on your computer.
+3. Open your browser extensions page (`chrome://extensions/` for Chrome/Edge/Brave).
+4. Turn on **Developer mode** in the top right corner.
+5. Click **Load unpacked** and select the extracted folder.
+
+### 💻 For Developers
+
+#### 1. Install & Build
 
 ```bash
 git clone https://github.com/satyakiabhijit/Kairo.git
 cd Kairo
 npm install
-npm run dev
+npm run build
 ```
 
-This starts a watch build for the Chrome target. For Firefox builds, use `npm run dev:firefox`.
+This generates a production build. Alternatively, use `npm run dev` to start a watch build for the Chrome target. For Firefox builds, use `npm run build:firefox` or `npm run dev:firefox`.
 
-### 2. Loading the Extension
+#### 2. Loading the Extension
 
-#### Chrome, Edge, or Brave
+##### Chrome, Edge, or Brave
 1. Run `npm run build` or `npm run dev`.
 2. Open the browser extensions page (`chrome://extensions/`).
 3. Enable **Developer mode**.
 4. Load the `dist-chrome/` folder as an unpacked extension.
 
-#### Firefox
+##### Firefox
 1. Run `npm run build:firefox` or `npm run dev:firefox`.
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Load the extension from the `dist-firefox/` folder.
 
-### 3. Configuration
+#### 3. Configuration
 Open the extension settings page to configure:
 - Claude API key for optional enrichment
 - Automatic enrichment on capture
@@ -106,7 +116,11 @@ Open the extension settings page to configure:
 
 > **⏳ Submission Deadlines:** All contributions and pull requests must be finalized and submitted prior to the specific deadlines outlined in their respective issues or associated events to be eligible for review.
 
-We welcome contributors of all levels.
+> [!CAUTION]
+> **🚨 ELUSOC ZERO-TOLERANCE ANTI-FRAUD POLICY 🚨**
+> As the project admin, I strictly monitor all ELUSOC contributions. Any attempt to "farm" points, use bots/automation for issue/PR creation, inflate line counts using stacked branches, split a single logical task into multiple trivial PRs, or inject irrelevant code will result in **immediate rejection of all PRs, stripping of all points, and a permanent ban** from contributing to this repository. Do real work or do not contribute.
+
+I welcome contributors of all levels.
 Start with open issues, claim one, and submit a focused PR with clean commit history.
 
 - Contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)

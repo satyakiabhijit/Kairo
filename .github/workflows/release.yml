@@ -1,0 +1,46 @@
+name: Release Builds
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extensions
+        run: |
+          npm run build:chrome
+          npm run build:firefox
+
+      - name: Package extensions
+        run: |
+          cd dist-chrome
+          zip -r ../kairo-chrome.zip .
+          cd ../dist-firefox
+          zip -r ../kairo-firefox.zip .
+          cd ..
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            kairo-chrome.zip
+            kairo-firefox.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
