@@ -64,7 +64,6 @@ function Popup() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
   const [loading, setLoading] = useState(true);
-  const [selectedIds, setSelectedIds] = useState([]);
   const [settings, setSettings] = useState({
     locale: 'en',
     theme: 'dark',
@@ -304,23 +303,6 @@ function Popup() {
   }, [loc]);
 
   // ─── Bulk Operations ───────────────────────────────────────
-  const handleBulkDelete = useCallback(() => {
-    if (!confirm(`Delete ${selectedIds.length} selected capsules?`)) return;
-    showToast('Deleting...');
-    let completed = 0;
-    selectedIds.forEach(id => {
-      chrome.runtime.sendMessage({ type: 'DELETE_CAPSULE', id }, (res) => {
-        completed++;
-        if (completed === selectedIds.length) {
-          chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (res2) => {
-            if (Array.isArray(res2)) setCapsules(res2);
-            setSelectedIds([]);
-            showToast('Deleted successfully');
-          });
-        }
-      });
-    });
-  }, [selectedIds]);
 
   const handleBulkTag = useCallback(() => {
     const tag = prompt('Enter tag to add to selected capsules:');
@@ -337,8 +319,8 @@ function Popup() {
       const existingTags = c.meta?.tags || [];
       if (existingTags.includes(cleanTag)) {
         completed++;
-        if (completed === selectedIds.length) {
-          setSelectedIds([]);
+        if (completed === selectedIds.size) {
+          setSelectedIds(new Set());
           showToast('Applied tags');
         }
         return;
@@ -351,10 +333,10 @@ function Popup() {
         updates: { meta: updatedMeta }
       }, () => {
         completed++;
-        if (completed === selectedIds.length) {
+        if (completed === selectedIds.size) {
           chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (res2) => {
             if (Array.isArray(res2)) setCapsules(res2);
-            setSelectedIds([]);
+            setSelectedIds(new Set());
             showToast('Applied tags');
           });
         }
@@ -381,10 +363,10 @@ function Popup() {
         updates: { meta: updatedMeta }
       }, () => {
         completed++;
-        if (completed === selectedIds.length) {
+        if (completed === selectedIds.size) {
           chrome.runtime.sendMessage({ type: 'GET_CAPSULES' }, (res2) => {
             if (Array.isArray(res2)) setCapsules(res2);
-            setSelectedIds([]);
+            setSelectedIds(new Set());
             showToast('Moved successfully');
           });
         }
@@ -631,7 +613,7 @@ const handleBulkExport = useCallback(() => {
     </div>
 
     <!-- Bulk Actions Panel -->
-    ${selectedIds.length > 0 && html`
+    ${selectedIds.size > 0 && html`
       <div class="bulk-panel" style="
         background: rgba(108, 71, 255, 0.08);
         border: 1px solid rgba(108, 71, 255, 0.2);
@@ -645,7 +627,7 @@ const handleBulkExport = useCallback(() => {
         font-size: 11px;
       ">
         <span style="font-weight: 600; color: var(--text-primary);">
-          ${selectedIds.length} selected
+          ${selectedIds.size} selected
         </span>
         <div style="display: flex; gap: 6px;">
           <button 
@@ -671,7 +653,7 @@ const handleBulkExport = useCallback(() => {
           </button>
           <button 
             class="card-btn" 
-            onClick=${() => setSelectedIds([])}
+            onClick=${() => setSelectedIds(new Set())}
             style="background: transparent; border-color: transparent; padding: 2px 6px;"
           >
             Cancel
@@ -714,11 +696,6 @@ const handleBulkExport = useCallback(() => {
           capsule=${c}
           locale=${loc}
           searchQuery=${query}
-          isSelected=${selectedIds.includes(c.id)}
-          onToggleSelect=${(id, checked) => {
-            if (checked) setSelectedIds(prev => [...prev, id]);
-            else setSelectedIds(prev => prev.filter(x => x !== id));
-          }}
           notionEnabled=${settings.notionEnabled}
           onCopy=${handleCopy}
           onCopyRaw=${handleCopyRaw}
