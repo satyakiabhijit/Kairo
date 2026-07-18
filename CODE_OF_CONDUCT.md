@@ -18,6 +18,7 @@ The following are not acceptable in this project:
 - Discriminatory comments or behavior
 - Deliberate disruption of discussion or contributions
 - Sharing private information without permission
+- **Metric Farming & Contribution Fraud**: Automating pull requests, generating fake or trivial activity, inflating line counts via stacked branches, or gaming open-source programs (such as ELUSOC) to farm points.
 
 ## Enforcement
 
