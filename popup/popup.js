@@ -484,12 +484,16 @@ const handleBulkExport = useCallback(() => {
     <!-- Header -->
     <div class="kairo-header">
       <h1 style="display: flex; align-items: center; gap: 8px;">
-        <img src="../assets/brand-logo.png" style="width: 22px; height: 22px; object-fit: contain; filter: brightness(0) invert(1);" />
+        <img src="../assets/brand-logo.png" style="width: 22px; height: 22px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(108, 71, 255, 0.8));" />
         Kairo
       </h1>
       <div class="header-actions">
-        <button class="icon-btn" onClick=${handleExport} title="Export" id="kairo-export-btn"><i class="fa-solid fa-download" style="color: rgb(138, 152, 177);"></i></button>
-        <button class="icon-btn" onClick=${openOptions} title=${t('settingsTitle', loc)} id="kairo-settings-btn"><i class="fa-solid fa-gear" style="color: rgb(138, 152, 177);"></i></button>
+        <button class="icon-btn" onClick=${handleExport} title="Export" id="kairo-export-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M11 5h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8"></path><polyline points="9 2 3 2 3 8"></polyline><line x1="3" y1="2" x2="14" y2="13"></line></svg>
+        </button>
+        <button class="icon-btn" onClick=${openOptions} title=${t('settingsTitle', loc)} id="kairo-settings-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
       </div>
     </div>
 
@@ -794,8 +798,8 @@ function CapsuleCard({ capsule, locale, notionEnabled, searchQuery, isSelected, 
           onClick=${e => e.stopPropagation()}
         />
         <div class="card-title" style="flex: 1;">${highlightMatch(c.title || t('untitledCapsule', locale), searchQuery)}</div>
-        <button class="icon-btn pin-btn" onClick=${() => onPin(c)} title=${c.meta?.pinned ? 'Unpin' : 'Pin'} style="border:none; background:transparent; cursor:pointer; padding: 2px 6px;">
-          <i class="fa-solid fa-thumb-tack" style="color: ${c.meta?.pinned ? 'var(--accent)' : 'var(--text-muted)'};"></i>
+        <button class="icon-btn pin-btn" onClick=${() => onPin(c)} title=${c.meta?.pinned ? 'Unpin' : 'Pin'} style="border:none; background:transparent; cursor:pointer; padding: 2px 6px; color: ${c.meta?.pinned ? 'var(--accent)' : 'var(--text-muted)'};">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill=${c.meta?.pinned ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"></path></svg>
         </button>
       </div>
 
@@ -846,13 +850,13 @@ function CapsuleCard({ capsule, locale, notionEnabled, searchQuery, isSelected, 
           </button>
         `}
         <button class="card-btn" onClick=${() => onCopyRaw(c)} title=${locale === 'es' ? 'Copiar transcripción' : 'Copy transcript'} style="padding: 4px 6px;">
-          <i class="fa-solid fa-file-lines" style="color: rgb(147, 162, 187);"></i>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
         </button>
         <button class="card-btn" onClick=${() => onExportSingle(c)} title="Download JSON" style="padding: 4px 6px;">
-          <i class="fa-solid fa-download" style="color: rgb(147, 162, 187);"></i>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         </button>
         <button class="card-btn delete" onClick=${onDelete} title=${t('btnDelete', locale)}>
-          <i class="fa-solid fa-trash" style="color: rgb(147, 162, 187);"></i>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
         </button>
       </div>
     </div>

@@ -9,6 +9,10 @@ describe('deleteCapsules', () => {
           get: vi.fn(),
           set: vi.fn().mockResolvedValue(undefined),
         },
+        sync: {
+          get: vi.fn().mockResolvedValue({}),
+          set: vi.fn().mockResolvedValue(undefined),
+        },
       },
     };
   });
