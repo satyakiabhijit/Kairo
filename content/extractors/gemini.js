@@ -21,7 +21,7 @@ export default {
         if (aiTurns[i]) turns.push({ role: 'assistant', text: getSafeText(aiTurns[i]) });
       }
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (primary selector)`);
-      return turns.filter(t => t.text.length > 0);
+      return turns.filter((t) => t.text.length > 0);
     }
 
     // Strategy 2: data-query-id / data-response-id
@@ -35,28 +35,39 @@ export default {
         if (aiTurns[i]) turns.push({ role: 'assistant', text: getSafeText(aiTurns[i]) });
       }
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (data-id selector)`);
-      return turns.filter(t => t.text.length > 0);
+      return turns.filter((t) => t.text.length > 0);
     }
 
     // Strategy 3: conversation turn containers
-    let turns = [...document.querySelectorAll('[class*="query-content"], [class*="response-content"]')];
+    let turns = [
+      ...document.querySelectorAll('[class*="query-content"], [class*="response-content"]'),
+    ];
     if (turns.length) {
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (content class)`);
-      return turns.map(el => {
-        const isUser = el.className.toLowerCase().includes('query');
-        return { role: isUser ? 'user' : 'assistant', text: getSafeText(el) };
-      }).filter(t => t.text.length > 0);
+      return turns
+        .map((el) => {
+          const isUser = el.className.toLowerCase().includes('query');
+          return { role: isUser ? 'user' : 'assistant', text: getSafeText(el) };
+        })
+        .filter((t) => t.text.length > 0);
     }
 
     // Strategy 4: message containers by class pattern
-    const mainArea = document.querySelector('main') || document.querySelector('[role="main"]') || document.body;
-    turns = [...mainArea.querySelectorAll('[class*="message"], [class*="Message"], [class*="turn"], [class*="Turn"], [class*="chat"]')];
+    const mainArea =
+      document.querySelector('main') || document.querySelector('[role="main"]') || document.body;
+    turns = [
+      ...mainArea.querySelectorAll(
+        '[class*="message"], [class*="Message"], [class*="turn"], [class*="Turn"], [class*="chat"]',
+      ),
+    ];
     if (turns.length >= 2) {
       console.log(`[Kairo Extractor] Gemini: ${turns.length} turns (class pattern)`);
-      return turns.map((el, i) => ({
-        role: i % 2 === 0 ? 'user' : 'assistant',
-        text: getSafeText(el),
-      })).filter(t => t.text.length > 0);
+      return turns
+        .map((el, i) => ({
+          role: i % 2 === 0 ? 'user' : 'assistant',
+          text: getSafeText(el),
+        }))
+        .filter((t) => t.text.length > 0);
     }
 
     // Final fallback
