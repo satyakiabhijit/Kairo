@@ -23,6 +23,7 @@
       --accent-glow: rgba(108, 71, 255, 0.2);
       --green: #22c55e;
       --red: #ef4444;
+      --danger: #ef4444;
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
@@ -40,6 +41,7 @@
       --text-primary: #1f1f2e;
       --text-secondary: #5c5c70;
       --text-muted: #8e8e9f;
+      --danger: #ef4444;
       --accent-glow: rgba(108, 71, 255, 0.15);
     }
 
@@ -51,8 +53,12 @@
       background: #a0a0b0;
     }
 
-    body.light-theme .btn {
+    body.light-theme .btn:not(.btn-primary) {
       background: #ffffff;
+    }
+
+    body.light-theme .options-header img {
+      filter: none !important;
     }
 
 

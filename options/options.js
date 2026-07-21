@@ -235,9 +235,8 @@ function OptionsPage() {
   return html`
     <div class="options-container">
 
-      <!-- Header -->
       <div class="options-header" style="display: flex; align-items: center; gap: 14px; margin-bottom: 30px;">
-        <img src="../assets/brand-logo.png" style="width: 46px; height: 46px; object-fit: contain; filter: brightness(0) invert(1);" />
+        <img src="../assets/brand-logo.png" style="width: 46px; height: 46px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(108, 71, 255, 0.8));" />
         <div>
           <h1 style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; background: linear-gradient(135deg, #6c47ff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
             ${t('settingsTitle', loc)}

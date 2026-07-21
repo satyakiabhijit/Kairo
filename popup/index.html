@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kairo — AI Context Saver</title>
 <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
     /* ─── Design Tokens ──────────────────────────────────────── */
     :root {
       --bg-primary: #0f0f14;
@@ -54,6 +56,8 @@
     body.light-theme .filter-chip {
       background: #ffffff;
     }
+
+    body.light-theme .kairo-header img { filter: none !important; }
 
     /* ─── Reset + Base ───────────────────────────────────────── */
     *, *::before, *::after {
@@ -442,31 +446,12 @@
       width: 32px;
       padding: 6px;
       color: var(--text-muted);
-      overflow: hidden;
     }
 
     .card-btn.delete:hover {
       background: rgba(239, 68, 68, 0.1);
       color: var(--red);
       border-color: rgba(239, 68, 68, 0.2);
-    }
-
-    .card-btn.delete span {
-      width: 16px;
-      height: 16px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-indent: 20px;
-      position: relative;
-    }
-
-    .card-btn.delete span::before {
-      content: '×';
-      position: absolute;
-      inset: 0;
-      text-indent: 0;
-      font-size: 18px;
-      line-height: 14px;
     }
 
     .card-btn.delete-solid {

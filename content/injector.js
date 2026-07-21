@@ -77,15 +77,19 @@ export function injectButton(onCapture) {
     position: absolute;
     bottom: 40px;
     right: 0;
-    background: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 8px;
+    background: rgba(30, 30, 35, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     padding: 6px;
     display: none;
     flex-direction: column;
     gap: 4px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     min-width: 140px;
+    transform-origin: bottom right;
+    animation: kairo-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   `;
 
   // Capture Option
@@ -105,17 +109,21 @@ export function injectButton(onCapture) {
     position: absolute;
     bottom: 80px;
     right: 0;
-    background: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 12px;
-    padding: 12px;
+    background: rgba(24, 24, 28, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 16px;
     display: none;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.6);
-    width: 250px;
-    max-height: 300px;
+    gap: 10px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    width: 280px;
+    max-height: 320px;
     overflow-y: auto;
+    transform-origin: bottom right;
+    animation: kairo-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   `;
 
   menu.appendChild(captureOpt);
@@ -203,22 +211,29 @@ export function injectButton(onCapture) {
         // Make draggable
         item.setAttribute('draggable', 'true');
         item.style.cssText = `
-          padding: 8px;
-          border-radius: 6px;
-          background: #2a2a2a;
-          color: #fff;
+          padding: 10px 12px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          color: #eaeaf0;
           font-size: 13px;
           cursor: grab;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          transition: background 0.2s, opacity 0.2s;
+          transition: background 0.2s, border-color 0.2s, opacity 0.2s;
           user-select: none;
           -webkit-user-drag: element;
         `;
 
-        item.addEventListener('mouseenter', () => item.style.background = '#3a3a3a');
-        item.addEventListener('mouseleave', () => item.style.background = '#2a2a2a');
+        item.addEventListener('mouseenter', () => {
+          item.style.background = 'rgba(255, 255, 255, 0.1)';
+          item.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        });
+        item.addEventListener('mouseleave', () => {
+          item.style.background = 'rgba(255, 255, 255, 0.05)';
+          item.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+        });
 
         item.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('text/plain', buildInjectionText(capsule, settings?.injectionTemplate));
@@ -277,17 +292,23 @@ function styleMenuOption(opt) {
   opt.style.cssText = `
     background: transparent;
     border: none;
-    color: #fff;
+    color: #eaeaf0;
     padding: 8px 12px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
     text-align: left;
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s;
   `;
-  opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.1)');
-  opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
+  opt.addEventListener('mouseenter', () => {
+    opt.style.background = '#6c47ff';
+    opt.style.color = '#fff';
+  });
+  opt.addEventListener('mouseleave', () => {
+    opt.style.background = 'transparent';
+    opt.style.color = '#eaeaf0';
+  });
 }
 
 function querySelectorShadow(root, selector) {
