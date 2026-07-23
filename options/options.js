@@ -363,54 +363,56 @@ function OptionsPage() {
               </div>
 
               ${
-              settings.enrichEngine === 'claude' &&
-              html`
-                <div>
-                  <div class="field">
-                    <label class="field-label" for="api-key-input">${t('apiKeyField', loc)}</label>
-                    <input
-                      class="text-input"
-                      type="password"
-                      id="api-key-input"
-                      placeholder="sk-ant-api03-..."
-                      value=${settings.apiKey}
-                      onInput=${(e) => setSettings({ ...settings, apiKey: e.target.value })}
-                    />
+                settings.enrichEngine === 'claude' &&
+                html`
+                  <div>
+                    <div class="field">
+                      <label class="field-label" for="api-key-input"
+                        >${t('apiKeyField', loc)}</label
+                      >
+                      <input
+                        class="text-input"
+                        type="password"
+                        id="api-key-input"
+                        placeholder="sk-ant-api03-..."
+                        value=${settings.apiKey}
+                        onInput=${(e) => setSettings({ ...settings, apiKey: e.target.value })}
+                      />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="endpoint-input"
+                        >API Endpoint URL (Optional)</label
+                      >
+                      <input
+                        class="text-input"
+                        type="text"
+                        id="endpoint-input"
+                        placeholder="https://api.anthropic.com/v1/messages"
+                        value=${settings.apiEndpoint}
+                        onInput=${(e) => setSettings({ ...settings, apiEndpoint: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div class="field">
-                    <label class="field-label" for="endpoint-input"
-                      >API Endpoint URL (Optional)</label
-                    >
-                    <input
-                      class="text-input"
-                      type="text"
-                      id="endpoint-input"
-                      placeholder="https://api.anthropic.com/v1/messages"
-                      value=${settings.apiEndpoint}
-                      onInput=${(e) => setSettings({ ...settings, apiEndpoint: e.target.value })}
-                    />
-                  </div>
-                </div>
-              `
-            }
+                `
+              }
               ${
-              settings.enrichEngine === 'gemini' &&
-              html`
-                <div>
-                  <div class="field">
-                    <label class="field-label" for="gemini-key-input">Gemini API Key</label>
-                    <input
-                      class="text-input"
-                      type="password"
-                      id="gemini-key-input"
-                      placeholder="AIzaSy..."
-                      value=${settings.geminiApiKey}
-                      onInput=${(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
-                    />
+                settings.enrichEngine === 'gemini' &&
+                html`
+                  <div>
+                    <div class="field">
+                      <label class="field-label" for="gemini-key-input">Gemini API Key</label>
+                      <input
+                        class="text-input"
+                        type="password"
+                        id="gemini-key-input"
+                        placeholder="AIzaSy..."
+                        value=${settings.geminiApiKey}
+                        onInput=${(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
-              `
-            }
+                `
+              }
             </div>
 
             <!-- Behavior Section -->
@@ -546,38 +548,38 @@ function OptionsPage() {
               </div>
 
               ${
-              settings.notionEnabled &&
-              html`
-                <div>
-                  <div class="field">
-                    <label class="field-label" for="notion-token-input"
-                      >${t('notionTokenField', loc)}</label
-                    >
-                    <input
-                      class="text-input"
-                      type="password"
-                      id="notion-token-input"
-                      placeholder="secret_..."
-                      value=${settings.notionToken}
-                      onInput=${(e) => setSettings({ ...settings, notionToken: e.target.value })}
-                    />
+                settings.notionEnabled &&
+                html`
+                  <div>
+                    <div class="field">
+                      <label class="field-label" for="notion-token-input"
+                        >${t('notionTokenField', loc)}</label
+                      >
+                      <input
+                        class="text-input"
+                        type="password"
+                        id="notion-token-input"
+                        placeholder="secret_..."
+                        value=${settings.notionToken}
+                        onInput=${(e) => setSettings({ ...settings, notionToken: e.target.value })}
+                      />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="notion-db-input"
+                        >${t('notionDbIdField', loc)}</label
+                      >
+                      <input
+                        class="text-input"
+                        type="text"
+                        id="notion-db-input"
+                        placeholder="e.g. 8c5b..."
+                        value=${settings.notionDbId}
+                        onInput=${(e) => setSettings({ ...settings, notionDbId: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div class="field">
-                    <label class="field-label" for="notion-db-input"
-                      >${t('notionDbIdField', loc)}</label
-                    >
-                    <input
-                      class="text-input"
-                      type="text"
-                      id="notion-db-input"
-                      placeholder="e.g. 8c5b..."
-                      value=${settings.notionDbId}
-                      onInput=${(e) => setSettings({ ...settings, notionDbId: e.target.value })}
-                    />
-                  </div>
-                </div>
-              `
-            }
+                `
+              }
             </div>
 
             <!-- Custom Markdown Injection Template -->
@@ -819,29 +821,29 @@ Stack: {stack}"
                   Top Extraction Tags
                 </div>
                 ${
-                stats.sortedTags.length === 0
-                  ? html`
-                      <div style="font-size: 12px; color: var(--text-secondary);">
-                        No tags captured yet. Try auto-tagging.
-                      </div>
-                    `
-                  : stats.sortedTags.map(
-                      ([tag, count]) => html`
-                        <div
-                          key=${tag}
-                          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px;"
-                        >
-                          <span
-                            style="background: var(--bg-input); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);"
-                            >${tag}</span
-                          >
-                          <span style="color: var(--text-secondary); font-weight: 600;"
-                            >${count} times</span
-                          >
+                  stats.sortedTags.length === 0
+                    ? html`
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                          No tags captured yet. Try auto-tagging.
                         </div>
-                      `,
-                    )
-              }
+                      `
+                    : stats.sortedTags.map(
+                        ([tag, count]) => html`
+                          <div
+                            key=${tag}
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px;"
+                          >
+                            <span
+                              style="background: var(--bg-input); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);"
+                              >${tag}</span
+                            >
+                            <span style="color: var(--text-secondary); font-weight: 600;"
+                              >${count} times</span
+                            >
+                          </div>
+                        `,
+                      )
+                }
               </div>
             </div>
           </div>

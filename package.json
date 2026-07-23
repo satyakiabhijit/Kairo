@@ -39,10 +39,10 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "vite": "^6.3.5",
-    "vite-plugin-web-extension": "^4.4.3",
-    "vitest": "^1.6.0",
     "eslint": "^8.57.0",
-    "prettier": "^3.2.5"
+    "prettier": "^3.2.5",
+    "vite": "^6.3.5",
+    "vite-plugin-web-extension": "^3.2.0",
+    "vitest": "^4.1.10"
   }
 }

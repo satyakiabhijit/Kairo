@@ -100,9 +100,9 @@ function Popup() {
                       class="icon-btn"
                       style="padding: 2px; font-size: 8px; background: transparent; border: none; cursor: pointer; display: flex; align-items: center;"
                       onClick=${(e) => {
-                  e.stopPropagation();
-                  toggleFolder(item.fullPath);
-                }}
+                        e.stopPropagation();
+                        toggleFolder(item.fullPath);
+                      }}
                     >
                       <svg
                         width="10"
@@ -660,29 +660,29 @@ function Popup() {
         "
           >
             ${suggestedTags.map(
-            (tag) => html`
-              <div
-                key=${tag}
-                onClick=${() => {
-                const index = query.lastIndexOf('#');
-                const newQuery = query.slice(0, index) + '#' + tag + ' ';
-                setQuery(newQuery);
-                setTimeout(() => document.getElementById('kairo-search')?.focus(), 50);
-              }}
-                style="
+              (tag) => html`
+                <div
+                  key=${tag}
+                  onClick=${() => {
+                  const index = query.lastIndexOf('#');
+                  const newQuery = query.slice(0, index) + '#' + tag + ' ';
+                  setQuery(newQuery);
+                  setTimeout(() => document.getElementById('kairo-search')?.focus(), 50);
+                }}
+                  style="
                 padding: 6px 12px;
                 font-size: 11px;
                 color: var(--text-primary);
                 cursor: pointer;
               "
-                class="suggestion-item"
-                onMouseEnter=${(e) => (e.target.style.background = 'rgba(255,255,255,0.06)')}
-                onMouseLeave=${(e) => (e.target.style.background = 'transparent')}
-              >
-                #${tag}
-              </div>
-            `,
-          )}
+                  class="suggestion-item"
+                  onMouseEnter=${(e) => (e.target.style.background = 'rgba(255,255,255,0.06)')}
+                  onMouseLeave=${(e) => (e.target.style.background = 'transparent')}
+                >
+                  #${tag}
+                </div>
+              `,
+            )}
           </div>
         `
       }
