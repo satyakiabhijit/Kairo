@@ -15,7 +15,7 @@ function enqueueMutation(mutator) {
   // Keep the chain alive whether or not an individual mutation rejects.
   mutationChain = result.then(
     () => {},
-    () => {}
+    () => {},
   );
   return result;
 }
@@ -26,7 +26,7 @@ async function syncLocalPinnedToSync() {
   try {
     const res = await chrome.storage.local.get(STORAGE_KEY);
     const capsules = res[STORAGE_KEY] || [];
-    const pinned = capsules.filter(c => c.meta?.pinned);
+    const pinned = capsules.filter((c) => c.meta?.pinned);
     await chrome.storage.sync.set({ [SYNC_PINNED_KEY]: pinned });
   } catch (err) {
     console.error('[Kairo Sync] Failed to sync pinned capsules:', err);
@@ -37,7 +37,7 @@ async function syncLocalPinnedToSync() {
 // within enqueueMutation so the read observes the previous mutation's write.
 async function upsertCapsuleUnlocked(capsule) {
   const existing = await getCapsules();
-  const idx = existing.findIndex(c => c.id === capsule.id);
+  const idx = existing.findIndex((c) => c.id === capsule.id);
 
   if (idx > -1) {
     existing[idx] = { ...existing[idx], ...capsule, updatedAt: Date.now() };
@@ -80,8 +80,8 @@ export async function getCapsules() {
     const syncedPinned = syncRes[SYNC_PINNED_KEY] || [];
 
     let modified = false;
-    syncedPinned.forEach(syncCap => {
-      const idx = localCaps.findIndex(c => c.id === syncCap.id);
+    syncedPinned.forEach((syncCap) => {
+      const idx = localCaps.findIndex((c) => c.id === syncCap.id);
       if (idx === -1) {
         if (syncCap.meta?.pinned) {
           localCaps.unshift(syncCap);
@@ -115,7 +115,7 @@ export async function deleteCapsule(id) {
   return enqueueMutation(async () => {
     try {
       const existing = await getCapsules();
-      const filtered = existing.filter(c => c.id !== id);
+      const filtered = existing.filter((c) => c.id !== id);
       await chrome.storage.local.set({ [STORAGE_KEY]: filtered });
       await syncLocalPinnedToSync();
       return { success: true };
@@ -135,7 +135,7 @@ export async function deleteCapsules(ids) {
     try {
       const idSet = new Set(ids);
       const existing = await getCapsules();
-      const filtered = existing.filter(c => !idSet.has(c.id));
+      const filtered = existing.filter((c) => !idSet.has(c.id));
       await chrome.storage.local.set({ [STORAGE_KEY]: filtered });
       return { success: true, deletedCount: existing.length - filtered.length };
     } catch (err) {
@@ -154,7 +154,7 @@ export async function updateCapsule(id, updates) {
   return enqueueMutation(async () => {
     try {
       const capsules = await getCapsules();
-      const capsule = capsules.find(c => c.id === id);
+      const capsule = capsules.find((c) => c.id === id);
       if (!capsule) {
         return { success: false, error: 'Capsule not found' };
       }
@@ -219,14 +219,16 @@ export async function compactDatabase() {
       const initialCount = localCaps.length;
 
       // Filter invalid structures
-      localCaps = localCaps.filter(c => {
+      localCaps = localCaps.filter((c) => {
         if (!c || typeof c !== 'object') return false;
-        return typeof c.id === 'string' && typeof c.source === 'string' && typeof c.content === 'object';
+        return (
+          typeof c.id === 'string' && typeof c.source === 'string' && typeof c.content === 'object'
+        );
       });
 
       // Deduplicate by ID
       const seen = new Set();
-      localCaps = localCaps.filter(c => {
+      localCaps = localCaps.filter((c) => {
         if (seen.has(c.id)) return false;
         seen.add(c.id);
         return true;

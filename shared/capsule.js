@@ -8,27 +8,27 @@
 export function createCapsule(overrides = {}) {
   return {
     id: crypto.randomUUID(),
-    title: '',                    // User-editable or AI-generated title
-    source: '',                   // "claude" | "chatgpt" | "gemini" | "deepseek"
-    url: '',                      // Full URL at capture time
-    capturedAt: Date.now(),       // Unix timestamp
+    title: '', // User-editable or AI-generated title
+    source: '', // "claude" | "chatgpt" | "gemini" | "deepseek"
+    url: '', // Full URL at capture time
+    capturedAt: Date.now(), // Unix timestamp
     updatedAt: Date.now(),
 
     content: {
-      summary: '',                // Short paragraph summary of the context
-      goals: [],                  // string[] — what the user was trying to achieve
-      constraints: [],            // string[] — limitations, requirements stated
-      stack: [],                  // string[] — tech stack or tools mentioned
-      keyDecisions: [],           // string[] — decisions made during the conversation
-      rawTurns: [],               // { role: "user"|"assistant", text: string }[]
-      rawSnippet: '',             // Last N chars of raw conversation (fallback)
+      summary: '', // Short paragraph summary of the context
+      goals: [], // string[] — what the user was trying to achieve
+      constraints: [], // string[] — limitations, requirements stated
+      stack: [], // string[] — tech stack or tools mentioned
+      keyDecisions: [], // string[] — decisions made during the conversation
+      rawTurns: [], // { role: "user"|"assistant", text: string }[]
+      rawSnippet: '', // Last N chars of raw conversation (fallback)
     },
 
     meta: {
-      tags: [],                   // string[] — user-added tags
-      folder: null,               // string | null — team folder name
-      pinned: false,              // boolean
-      enriched: false,            // whether Claude API was used to enrich
+      tags: [], // string[] — user-added tags
+      folder: null, // string | null — team folder name
+      pinned: false, // boolean
+      enriched: false, // whether Claude API was used to enrich
     },
 
     ...overrides,
