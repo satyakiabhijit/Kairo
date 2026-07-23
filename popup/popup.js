@@ -664,11 +664,11 @@ function Popup() {
                 <div
                   key=${tag}
                   onClick=${() => {
-                  const index = query.lastIndexOf('#');
-                  const newQuery = query.slice(0, index) + '#' + tag + ' ';
-                  setQuery(newQuery);
-                  setTimeout(() => document.getElementById('kairo-search')?.focus(), 50);
-                }}
+                    const index = query.lastIndexOf('#');
+                    const newQuery = query.slice(0, index) + '#' + tag + ' ';
+                    setQuery(newQuery);
+                    setTimeout(() => document.getElementById('kairo-search')?.focus(), 50);
+                  }}
                   style="
                 padding: 6px 12px;
                 font-size: 11px;
