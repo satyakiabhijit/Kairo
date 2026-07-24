@@ -33,3 +33,9 @@ jobs:
 
       - name: Run Tests
         run: npm run test
+
+      - name: Build Extension (Chrome)
+        run: npm run build:chrome
+
+      - name: Build Extension (Firefox)
+        run: npm run build:firefox
